@@ -1,0 +1,215 @@
+<Window x:Class="Connect4Client.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Connect4Client"
+        mc:Ignorable="d"
+        Title="Connect 4 Game" Height="750" Width="1000"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="{StaticResource BackgroundBrush}">
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="80"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="60"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <Grid Grid.Row="0" Background="{StaticResource HeaderGradientBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="30,0,0,0">
+                <Ellipse Width="28" Height="28" Fill="#EF4444" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                <StackPanel>
+                    <TextBlock Text="Connect 4" FontSize="28" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                    <TextBlock Text="Strategic Game Experience" FontSize="12" Foreground="#E0E7FF" VerticalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+            
+            <Border Grid.Column="1" Background="#19FFFFFF" CornerRadius="10" Padding="20,10">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="12" Height="12" Fill="#10B981" Margin="0,0,8,0"/>
+                    <TextBlock Text="Player: " FontSize="14" Foreground="White" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="PlayerNameText" Text="Not Connected" FontSize="14" FontWeight="Bold" Foreground="#FBBF24" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+            
+            <Button Grid.Column="2" 
+                    x:Name="ConnectButton" 
+                    Content="🌐 Connect to Server" 
+                    Style="{StaticResource GameButtonStyle}"
+                    Background="#33FFFFFF"
+                    BorderBrush="#4DFFFFFF"
+                    BorderThickness="1"
+                    HorizontalAlignment="Center"
+                    Click="ConnectButton_Click"/>
+        </Grid>
+        
+        <!-- Game Area -->
+        <Grid Grid.Row="1" Margin="30,20,30,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="280"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Game Board -->
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,15,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="60"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Column Buttons -->
+                    <Grid Grid.Row="0" x:Name="ColumnButtonsGrid" 
+                          Background="{StaticResource GameBoardGradientBrush}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Column buttons will be created programmatically -->
+                    </Grid>
+                    
+                    <!-- Game Board Matrix -->
+                    <Grid Grid.Row="1" x:Name="GameBoardGrid" 
+                          Background="{StaticResource GameBoardGradientBrush}" 
+                          Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Rectangle matrix will be created programmatically -->
+                    </Grid>
+                </Grid>
+            </Border>
+            
+            <!-- Side Panel -->
+            <StackPanel Grid.Column="1">
+                <!-- Game Status -->
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock Text="🎮 Game Status" Style="{StaticResource SubHeadingStyle}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                            <Ellipse Width="8" Height="8" Fill="#10B981" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="GameStatusText" Text="Ready to Play" Style="{StaticResource BodyTextStyle}"/>
+                        </StackPanel>
+                        <TextBlock x:Name="CurrentPlayerText" Text="Waiting for connection..." Style="{StaticResource BodyTextStyle}"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Player Info -->
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock Text="👥 Players" Style="{StaticResource SubHeadingStyle}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Ellipse Width="24" Height="24" Fill="{StaticResource Player1Brush}" Margin="0,0,12,0"/>
+                            <TextBlock Text="You" Style="{StaticResource BodyTextStyle}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="24" Height="24" Fill="{StaticResource Player2Brush}" Margin="0,0,12,0"/>
+                            <TextBlock Text="CPU" Style="{StaticResource BodyTextStyle}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Statistics -->
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock Text="📊 Statistics" Style="{StaticResource SubHeadingStyle}"/>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Games Won:" Style="{StaticResource BodyTextStyle}"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="GamesWonText" Text="0" Style="{StaticResource BodyTextStyle}" FontWeight="Bold"/>
+                            
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Games Lost:" Style="{StaticResource BodyTextStyle}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="GamesLostText" Text="0" Style="{StaticResource BodyTextStyle}" FontWeight="Bold"/>
+                            
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Total Played:" Style="{StaticResource BodyTextStyle}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="GamesPlayedText" Text="0" Style="{StaticResource BodyTextStyle}" FontWeight="Bold"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Animation Status -->
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="⚡ Animation" Style="{StaticResource SubHeadingStyle}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Ellipse Width="8" Height="8" Fill="#10B981" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="AnimationStatusText" Text="Ready" Style="{StaticResource BodyTextStyle}"/>
+                        </StackPanel>
+                        <ProgressBar x:Name="AnimationProgressBar" 
+                                     Height="6" 
+                                     Background="#E5E7EB" 
+                                     Foreground="{StaticResource PrimaryBrush}"
+                                     Visibility="Collapsed"
+                                     Style="{DynamicResource {x:Type ProgressBar}}"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Control Buttons -->
+                <StackPanel>
+                    <Button x:Name="NewGameButton" 
+                            Content="🎯 New Game" 
+                            Style="{StaticResource GameButtonStyle}"
+                            Click="NewGameButton_Click"
+                            Margin="0,0,0,10"/>
+                    <Button x:Name="SaveGameButton" 
+                            Content="💾 Save Game" 
+                            Style="{StaticResource SuccessButtonStyle}"
+                            Click="SaveGameButton_Click"
+                            Margin="0,0,0,10"/>
+                    <Button x:Name="LoadGameButton" 
+                            Content="📁 Load Game" 
+                            Style="{StaticResource WarningButtonStyle}"
+                            Click="LoadGameButton_Click"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+        
+        <!-- Footer -->
+        <Border Grid.Row="2" Background="#1F2937" CornerRadius="0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Connect 4 Game" FontSize="12" Foreground="White" VerticalAlignment="Center"/>
+                <TextBlock Text=" • " FontSize="12" Foreground="#6B7280" VerticalAlignment="Center"/>
+                <TextBlock Text="Developed by Netanel Kozel &amp; Barak Kuzi" FontSize="12" Foreground="#9CA3AF" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window> 

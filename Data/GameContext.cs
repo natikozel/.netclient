@@ -1,0 +1,38 @@
+using Microsoft.EntityFrameworkCore;
+using Connect4Client.Models;
+using System.Text.Json;
+
+namespace Connect4Client.Data
+{
+    public class GameContext : DbContext
+    {
+        public DbSet<SavedGame> SavedGames { get; set; } = default!;
+
+        public GameContext(DbContextOptions<GameContext> options) : base(options)
+        {
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<SavedGame>()
+                .Property(e => e.BoardStateJson)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<int[,]>(v, (JsonSerializerOptions?)null) ?? new int[6, 7]
+                );
+
+            base.OnModelCreating(modelBuilder);
+        }
+    }
+
+    public class SavedGame
+    {
+        public int Id { get; set; }
+        public int PlayerId { get; set; }
+        public int GameId { get; set; }
+        public int[,] BoardStateJson { get; set; } = new int[6, 7];
+        public bool IsPlayerTurn { get; set; }
+        public DateTime SavedAt { get; set; }
+        public string GameStatus { get; set; } = "InProgress";
+    }
+} 
