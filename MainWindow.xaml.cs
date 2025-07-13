@@ -22,6 +22,7 @@ namespace Connect4Client
         private int[,] boardState = null!;
         private bool isPlayerTurn = true;
         private bool gameActive = false;
+        private bool isProcessingMove = false; // Prevent multiple simultaneous moves
         private Player? currentPlayer; // Make nullable since we start without login
         private GameDto? currentGame;
         
@@ -38,14 +39,17 @@ namespace Connect4Client
         private readonly GameService gameService;
         private readonly ApiService apiService;
         
-        // Default parameterless constructor
+                // Default parameterless constructor
         public MainWindow()
         {
             try
-            {                
-                InitializeComponent();                
+            {
+                InitializeComponent();
                 gameService = new GameService();
                 apiService = new ApiService();
+                
+                // Set responsive window size based on screen
+                SetResponsiveWindowSize();
                 
                 InitializeTimers();
                 InitializeGameBoard();
@@ -59,6 +63,17 @@ namespace Connect4Client
                     "Initialization Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 throw;
             }
+        }
+        
+        private void SetResponsiveWindowSize()
+        {
+            // Get primary screen dimensions
+            var screenWidth = SystemParameters.PrimaryScreenWidth;
+            var screenHeight = SystemParameters.PrimaryScreenHeight;
+            
+            // Set window to 80% of screen size, but respect min/max limits
+            Width = Math.Max(800, Math.Min(screenWidth * 0.8, 1200));
+            Height = Math.Max(600, Math.Min(screenHeight * 0.8, 900));
         }
 
         // Constructor that accepts a logged-in player (for compatibility)
@@ -184,7 +199,7 @@ namespace Connect4Client
                 Button columnButton = new Button
                 {
                     Content = $"▼",
-                    FontSize = 18,
+                    FontSize = 16,  // Slightly smaller for better responsiveness
                     FontWeight = FontWeights.Bold,
                     Style = (Style)FindResource("GameButtonStyle"),
                     Tag = col
@@ -198,12 +213,17 @@ namespace Connect4Client
         
         private async void ColumnButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!gameActive || !isPlayerTurn || animationTimer.IsEnabled) 
+            if (!gameActive || !isPlayerTurn || animationTimer.IsEnabled || isProcessingMove) 
             {
                 if (!gameActive)
                 {
                     MessageBox.Show("Please start a new game first by clicking the 'New Game' button.", 
                         "Game Not Started", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else if (isProcessingMove)
+                {
+                    // Silently ignore clicks while processing - no need to show message
+                    return;
                 }
                 return;
             }
@@ -226,6 +246,10 @@ namespace Connect4Client
                 return;
             }
             
+            // Prevent multiple simultaneous moves
+            if (isProcessingMove) return;
+            isProcessingMove = true;
+            
             try
             {
                 // Make move on server
@@ -245,12 +269,11 @@ namespace Connect4Client
                 // Update board state from server (convert jagged array to 2D array)
                 boardState = GameDto.To2DArray(response.Game.Board);
                 
-                // Find the row where the piece was placed
-                int row = FindLowestEmptyRow(column);
-                if (row == -1) return;
+                // Add a short delay before updating the visual board to show the move
+                await Task.Delay(300);
                 
-                // Update visual board
-                await AnimateDropPiece(row, column, true);
+                // Update visual board to match server state
+                await UpdateVisualBoard();
                 
                 // Save game state locally
                 await SaveGameState();
@@ -262,11 +285,10 @@ namespace Connect4Client
                 }
                 else if (currentGame.Status == "Lost")
                 {
-                    // CPU made a move, animate it
-                    if (response.CpuMove.HasValue)
-                    {
-                        await AnimateCpuMove(response.CpuMove.Value);
-                    }
+                    // Show CPU thinking animation
+                    AnimationStatusText.Text = "CPU is thinking...";
+                    await Task.Delay(800); // CPU "thinking" delay
+                    
                     await HandleGameWin(false);
                 }
                 else if (currentGame.Status == "Draw")
@@ -275,10 +297,12 @@ namespace Connect4Client
                 }
                 else
                 {
-                    // Game continues, CPU makes move
+                    // Game continues - show CPU thinking if there's a CPU move
                     if (response.CpuMove.HasValue)
                     {
-                        await AnimateCpuMove(response.CpuMove.Value);
+                        AnimationStatusText.Text = "CPU is thinking...";
+                        await Task.Delay(800); // CPU "thinking" delay
+                        AnimationStatusText.Text = "Ready";
                     }
                     
                     UpdateGameStatus();
@@ -288,36 +312,150 @@ namespace Connect4Client
             {
                 MessageBox.Show($"Error making move: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+            finally
+            {
+                // Always clear the processing flag
+                isProcessingMove = false;
+            }
         }
         
-        private async Task AnimateCpuMove(int column)
+        private async Task UpdateVisualBoard()
         {
-            // Find the row where CPU piece was placed
-            int row = -1;
-            for (int r = ROWS - 1; r >= 0; r--)
+            // Store previous board state to detect new pieces
+            var previousState = new int[ROWS, COLUMNS];
+            for (int row = 0; row < ROWS; row++)
             {
-                if (boardState[r, column] == 2)
+                for (int col = 0; col < COLUMNS; col++)
                 {
-                    row = r;
-                    break;
+                    var piece = gamePieces[row, col];
+                    previousState[row, col] = piece.Visibility == Visibility.Visible ? 
+                        (piece.Fill == Brushes.Red ? 1 : 2) : 0;
                 }
             }
             
-            if (row != -1)
+            // Find new pieces and separate player vs CPU moves
+            var newPlayerPieces = new List<(int row, int col)>();
+            var newCpuPieces = new List<(int row, int col)>();
+            
+            for (int row = 0; row < ROWS; row++)
             {
-                await AnimateDropPiece(row, column, false);
+                for (int col = 0; col < COLUMNS; col++)
+                {
+                    var piece = gamePieces[row, col];
+                    var newValue = boardState[row, col];
+                    var oldValue = previousState[row, col];
+                    
+                    if (newValue != oldValue && newValue != 0)
+                    {
+                        // This is a new piece - categorize by player type
+                        if (newValue == 1) // Player piece
+                        {
+                            newPlayerPieces.Add((row, col));
+                        }
+                        else if (newValue == 2) // CPU piece
+                        {
+                            newCpuPieces.Add((row, col));
+                        }
+                    }
+                    
+                    // Update the piece immediately for empty or existing pieces
+                    switch (newValue)
+                    {
+                        case 0: // Empty
+                            piece.Fill = Brushes.Transparent;
+                            piece.Visibility = Visibility.Hidden;
+                            break;
+                        case 1: // Player
+                            if (oldValue == 0) // Only if it's actually new
+                            {
+                                piece.Fill = Brushes.Red;
+                                piece.Visibility = Visibility.Hidden; // Will be shown by animation
+                            }
+                            else
+                            {
+                                piece.Fill = Brushes.Red;
+                                piece.Visibility = Visibility.Visible;
+                            }
+                            break;
+                        case 2: // CPU
+                            if (oldValue == 0) // Only if it's actually new
+                            {
+                                piece.Fill = Brushes.Yellow;
+                                piece.Visibility = Visibility.Hidden; // Will be shown by animation
+                            }
+                            else
+                            {
+                                piece.Fill = Brushes.Yellow;
+                                piece.Visibility = Visibility.Visible;
+                            }
+                            break;
+                    }
+                }
+            }
+            
+            // ALWAYS animate player pieces first, then CPU pieces
+            foreach (var (row, col) in newPlayerPieces)
+            {
+                await AnimateSimpleFallingPiece(row, col, true); // Player move
+                await Task.Delay(100);
+            }
+            
+            // Then animate CPU pieces (if any)
+            foreach (var (row, col) in newCpuPieces)
+            {
+                await AnimateSimpleFallingPiece(row, col, false); // CPU move
+                await Task.Delay(100);
             }
         }
         
-        private int FindLowestEmptyRow(int column)
+        private async Task AnimateSimpleFallingPiece(int targetRow, int targetCol, bool isPlayerMove)
         {
-            for (int row = ROWS - 1; row >= 0; row--)
+            var piece = gamePieces[targetRow, targetCol];
+            var startRow = 0; // Start from top
+            
+            // Create a temporary animated piece
+            var animatedPiece = new Ellipse
             {
-                if (boardState[row, column] == 0)
-                    return row;
+                Width = piece.ActualWidth > 0 ? piece.ActualWidth : 40,
+                Height = piece.ActualHeight > 0 ? piece.ActualHeight : 40,
+                Fill = isPlayerMove ? Brushes.Red : Brushes.Yellow,
+                Stroke = Brushes.DarkBlue,
+                StrokeThickness = 2
+            };
+            
+            // Add to game board grid
+            Grid.SetRow(animatedPiece, startRow);
+            Grid.SetColumn(animatedPiece, targetCol);
+            GameBoardGrid.Children.Add(animatedPiece);
+            
+            // Animate falling down
+            for (int currentRow = startRow; currentRow <= targetRow; currentRow++)
+            {
+                Grid.SetRow(animatedPiece, currentRow);
+                await Task.Delay(80); // Falling speed
             }
-            return -1; // Column is full
+            
+            // Remove animated piece and show final piece
+            GameBoardGrid.Children.Remove(animatedPiece);
+            piece.Visibility = Visibility.Visible;
+            
+            // Add a subtle glow effect
+            await AnimateSimpleGlow(piece);
         }
+        
+        private async Task AnimateSimpleGlow(Ellipse piece)
+        {
+            var originalOpacity = piece.Opacity;
+            
+            // Quick glow effect
+            piece.Opacity = 0.6;
+            await Task.Delay(100);
+            piece.Opacity = 1.0;
+            await Task.Delay(100);
+            piece.Opacity = originalOpacity;
+        }
+        
+        // FindLowestEmptyRow removed - server handles piece placement logic
         
         private async Task AnimateDropPiece(int targetRow, int targetColumn, bool isPlayerMove)
         {
@@ -443,67 +581,7 @@ namespace Connect4Client
                 AnimationStatusText.Foreground = colors[0];
         }
         
-        private bool CheckWin(int row, int column)
-        {
-            int playerValue = boardState[row, column];
-            
-            // Check all four directions
-            return CheckDirection(row, column, playerValue, 1, 0) ||  // Horizontal
-                   CheckDirection(row, column, playerValue, 0, 1) ||  // Vertical
-                   CheckDirection(row, column, playerValue, 1, 1) ||  // Diagonal \
-                   CheckDirection(row, column, playerValue, 1, -1);   // Diagonal /
-        }
-        
-        private bool CheckDirection(int row, int column, int playerValue, int deltaRow, int deltaColumn)
-        {
-            int count = 1; // Count the current piece
-            
-            // Check in positive direction
-            for (int i = 1; i < 4; i++)
-            {
-                int newRow = row + i * deltaRow;
-                int newColumn = column + i * deltaColumn;
-                
-                if (newRow >= 0 && newRow < ROWS && newColumn >= 0 && newColumn < COLUMNS &&
-                    boardState[newRow, newColumn] == playerValue)
-                {
-                    count++;
-                }
-                else
-                {
-                    break;
-                }
-            }
-            
-            // Check in negative direction
-            for (int i = 1; i < 4; i++)
-            {
-                int newRow = row - i * deltaRow;
-                int newColumn = column - i * deltaColumn;
-                
-                if (newRow >= 0 && newRow < ROWS && newColumn >= 0 && newColumn < COLUMNS &&
-                    boardState[newRow, newColumn] == playerValue)
-                {
-                    count++;
-                }
-                else
-                {
-                    break;
-                }
-            }
-            
-            return count >= 4;
-        }
-        
-        private bool CheckDraw()
-        {
-            for (int col = 0; col < COLUMNS; col++)
-            {
-                if (FindLowestEmptyRow(col) != -1)
-                    return false;
-            }
-            return true;
-        }
+        // Client-side win checking removed - server handles all game logic
         
         private async Task HandleGameWin(bool playerWon)
         {
@@ -655,20 +733,13 @@ namespace Connect4Client
                 // Reset game state
                 gameActive = true;
                 isPlayerTurn = true;
-                
-                // Clear board
-                for (int row = 0; row < ROWS; row++)
-                {
-                    for (int col = 0; col < COLUMNS; col++)
-                    {
-                        boardState[row, col] = 0;
-                        gamePieces[row, col].Fill = Brushes.Transparent;
-                        gamePieces[row, col].Visibility = Visibility.Hidden;
-                    }
-                }
+                isProcessingMove = false; // Reset processing flag for new game
                 
                 // Update board state from server (convert jagged array to 2D array)
                 boardState = GameDto.To2DArray(response.Game.Board);
+                
+                // Update visual board to match server state
+                await UpdateVisualBoard();
                 
                 // Reset timers
                 animationTimer.Stop();
@@ -739,20 +810,6 @@ namespace Connect4Client
         {
             try
             {
-                // Clear the current board
-                gameActive = false;
-                
-                // Clear visual board
-                for (int row = 0; row < ROWS; row++)
-                {
-                    for (int col = 0; col < COLUMNS; col++)
-                    {
-                        gamePieces[row, col].Fill = Brushes.Transparent;
-                        gamePieces[row, col].Visibility = Visibility.Hidden;
-                        boardState[row, col] = 0;
-                    }
-                }
-                
                 // Restore game state
                 boardState = savedGame.BoardStateJson;
                 isPlayerTurn = savedGame.IsPlayerTurn;
@@ -767,8 +824,8 @@ namespace Connect4Client
                     CurrentPlayer = savedGame.IsPlayerTurn ? "Player" : "CPU"
                 };
                 
-                // Animate the restoration of pieces
-                await AnimateGameRestoration();
+                // Update visual board to match restored state
+                await UpdateVisualBoard();
                 
                 UpdateGameStatus();
                 MessageBox.Show("Game restored successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -779,29 +836,6 @@ namespace Connect4Client
             }
         }
         
-        private async Task AnimateGameRestoration()
-        {
-            // Animate pieces dropping in sequence with reasonable timing
-            var moveSequence = new List<(int row, int col, int player)>();
-            
-            // Build sequence of moves from the board state
-            for (int col = 0; col < COLUMNS; col++)
-            {
-                for (int row = ROWS - 1; row >= 0; row--)
-                {
-                    if (boardState[row, col] != 0)
-                    {
-                        moveSequence.Add((row, col, boardState[row, col]));
-                    }
-                }
-            }
-            
-            // Animate each piece drop
-            foreach (var move in moveSequence)
-            {
-                await AnimateDropPiece(move.row, move.col, move.player == 1);
-                await Task.Delay(300); // Reasonable pace for viewing
-            }
-        }
+        // AnimateGameRestoration removed - using UpdateVisualBoard instead
     }
 } 

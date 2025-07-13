@@ -258,3 +258,4 @@ C:\Users\Netanel.Kozel\OneDrive - abra-IT\Desktop\Final Project\Connect4Client\o
 C:\Users\Netanel.Kozel\OneDrive - abra-IT\Desktop\Final Project\Connect4Client\obj\Debug\net8.0-windows\Connect4Client.pdb
 C:\Users\Netanel.Kozel\OneDrive - abra-IT\Desktop\Final Project\Connect4Client\obj\Debug\net8.0-windows\Connect4Client.genruntimeconfig.cache
 C:\Users\Netanel.Kozel\OneDrive - abra-IT\Desktop\Final Project\Connect4Client\obj\Debug\net8.0-windows\ref\Connect4Client.dll
+C:\Users\Netanel.Kozel\OneDrive - abra-IT\Desktop\Final Project\Connect4Client\obj\Debug\net8.0-windows\Connect4Client.sourcelink.json
