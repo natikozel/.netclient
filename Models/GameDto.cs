@@ -7,10 +7,58 @@ namespace Connect4Client.Models
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public string Status { get; set; } = string.Empty;
-        public int[,] Board { get; set; } = new int[6, 7];
+        public int[][] Board { get; set; } = new int[6][]; // Changed from int[,] to int[][]
         public string CurrentPlayer { get; set; } = string.Empty;
         public string? Winner { get; set; }
         public PlayerDto? Player { get; set; }
+
+        // Constructor to initialize jagged array
+        public GameDto()
+        {
+            Board = new int[6][];
+            for (int i = 0; i < 6; i++)
+            {
+                Board[i] = new int[7];
+            }
+        }
+
+        // Helper method to convert from 2D array to jagged array
+        public static int[][] From2DArray(int[,] array2D)
+        {
+            int rows = array2D.GetLength(0);
+            int cols = array2D.GetLength(1);
+            int[][] jaggedArray = new int[rows][];
+            
+            for (int i = 0; i < rows; i++)
+            {
+                jaggedArray[i] = new int[cols];
+                for (int j = 0; j < cols; j++)
+                {
+                    jaggedArray[i][j] = array2D[i, j];
+                }
+            }
+            return jaggedArray;
+        }
+
+        // Helper method to convert from jagged array to 2D array
+        public static int[,] To2DArray(int[][] jaggedArray)
+        {
+            if (jaggedArray == null || jaggedArray.Length == 0)
+                return new int[6, 7];
+                
+            int rows = jaggedArray.Length;
+            int cols = jaggedArray[0].Length;
+            int[,] array2D = new int[rows, cols];
+            
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    array2D[i, j] = jaggedArray[i][j];
+                }
+            }
+            return array2D;
+        }
     }
 
     public class PlayerDto

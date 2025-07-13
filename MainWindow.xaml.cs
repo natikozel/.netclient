@@ -89,6 +89,15 @@ namespace Connect4Client
             UpdateGameStatus();
             ConnectButton.Content = "✓ Connected";
             ConnectButton.IsEnabled = false;
+            
+            // Auto-start game after login for better user experience
+            _ = Task.Run(async () =>
+            {
+                await Dispatcher.InvokeAsync(async () =>
+                {
+                    await StartNewGame();
+                });
+            });
         }
         
         private void UpdatePlayerInfo()
@@ -189,7 +198,15 @@ namespace Connect4Client
         
         private async void ColumnButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!gameActive || !isPlayerTurn || animationTimer.IsEnabled) return;
+            if (!gameActive || !isPlayerTurn || animationTimer.IsEnabled) 
+            {
+                if (!gameActive)
+                {
+                    MessageBox.Show("Please start a new game first by clicking the 'New Game' button.", 
+                        "Game Not Started", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                return;
+            }
             
             Button clickedButton = (Button)sender;
             int column = (int)clickedButton.Tag;
@@ -225,8 +242,8 @@ namespace Connect4Client
                 // Update current game state
                 currentGame = response.Game;
                 
-                // Update board state from server
-                boardState = response.Game.Board;
+                // Update board state from server (convert jagged array to 2D array)
+                boardState = GameDto.To2DArray(response.Game.Board);
                 
                 // Find the row where the piece was placed
                 int row = FindLowestEmptyRow(column);
@@ -650,8 +667,8 @@ namespace Connect4Client
                     }
                 }
                 
-                // Update board state from server
-                boardState = response.Game.Board;
+                // Update board state from server (convert jagged array to 2D array)
+                boardState = GameDto.To2DArray(response.Game.Board);
                 
                 // Reset timers
                 animationTimer.Stop();
@@ -746,7 +763,7 @@ namespace Connect4Client
                 {
                     Id = savedGame.GameId,
                     Status = savedGame.GameStatus,
-                    Board = savedGame.BoardStateJson,
+                    Board = GameDto.From2DArray(savedGame.BoardStateJson), // Convert 2D array to jagged array
                     CurrentPlayer = savedGame.IsPlayerTurn ? "Player" : "CPU"
                 };
                 
