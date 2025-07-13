@@ -1,7 +1,9 @@
+using System;
 using System.Windows;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Connect4Client.Data;
+using Connect4Client.Models;
 using System.IO;
 
 namespace Connect4Client
@@ -14,8 +16,39 @@ namespace Connect4Client
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            base.OnStartup(e);
-            
+            try
+            {
+                base.OnStartup(e);
+                Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                InitializeServices();
+                
+                var loginWindow = new LoginWindow();
+                var loginResult = loginWindow.ShowDialog();
+                
+                if (loginResult == true && loginWindow.LoggedInPlayer != null)
+                {
+                    var mainWindow = new MainWindow(loginWindow.LoggedInPlayer);
+                    mainWindow.Show();
+                    Application.Current.MainWindow = mainWindow;
+                    Application.Current.ShutdownMode = ShutdownMode.OnMainWindowClose;
+                    
+                }
+                else
+                {
+                    // Login cancelled or failed - exit application
+                    Shutdown();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Application startup error: {ex.Message}", 
+                    "Startup Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown();
+            }
+        }
+
+        private void InitializeServices()
+        {
             try
             {
                 // Get the application directory (where the executable is running from)
@@ -25,7 +58,7 @@ namespace Connect4Client
                 string projectRoot = Path.GetFullPath(Path.Combine(appDirectory, "..", "..", ".."));
                 string dbPath = Path.Combine(projectRoot, "Connect4ClientDb.mdf");
                 
-                // Configure services like in the lectures
+                // Configure services
                 var services = new ServiceCollection();
                 
                 // Add DbContext with SQL Server pointing to local .mdf file
@@ -38,29 +71,12 @@ namespace Connect4Client
                 using var scope = serviceProvider.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<GameContext>();
                 context.Database.EnsureCreated();
-                
-                // Show login window first
-                var loginWindow = new LoginWindow();
-                var loginResult = loginWindow.ShowDialog();
-                
-                if (loginResult == true && loginWindow.LoggedInPlayer != null)
-                {
-                    // Login successful, show main window
-                    var mainWindow = new MainWindow(loginWindow.LoggedInPlayer);
-                    mainWindow.Show();
-                }
-                else
-                {
-                    // Login failed or cancelled, exit application
-                    Shutdown();
-                }
             }
             catch (Exception ex)
             {
-                // Show error message and exit
-                MessageBox.Show($"Application startup failed: {ex.Message}\n\nDetails: {ex.ToString()}", 
-                    "Startup Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                Shutdown();
+                MessageBox.Show($"Service initialization error: {ex.Message}", 
+                    "Service Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                throw;
             }
         }
 

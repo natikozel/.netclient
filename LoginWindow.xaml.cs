@@ -59,7 +59,7 @@ namespace Connect4Client
                 // Login successful
                 LoggedInPlayer = player;
                 DialogResult = true;
-                Close();
+                this.Close();
             }
             catch (Exception ex)
             {

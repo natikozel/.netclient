@@ -22,7 +22,7 @@ namespace Connect4Client
         private int[,] boardState = null!;
         private bool isPlayerTurn = true;
         private bool gameActive = false;
-        private Player currentPlayer;
+        private Player? currentPlayer; // Make nullable since we start without login
         private GameDto? currentGame;
         
         // Animation components
@@ -38,18 +38,57 @@ namespace Connect4Client
         private readonly GameService gameService;
         private readonly ApiService apiService;
         
-        public MainWindow(Player loggedInPlayer)
+        // Default parameterless constructor
+        public MainWindow()
         {
-            InitializeComponent();
-            currentPlayer = loggedInPlayer;
-            gameService = new GameService();
-            apiService = new ApiService();
-            
-            InitializeTimers();
-            InitializeGameBoard();
-            InitializeColumnButtons();
+            try
+            {                
+                InitializeComponent();                
+                gameService = new GameService();
+                apiService = new ApiService();
+                
+                InitializeTimers();
+                InitializeGameBoard();
+                InitializeColumnButtons();
+                UpdatePlayerInfo();
+                UpdateGameStatus();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"MainWindow initialization error: {ex.Message}", 
+                    "Initialization Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                throw;
+            }
+        }
+
+        // Constructor that accepts a logged-in player (for compatibility)
+        public MainWindow(Player loggedInPlayer) : this()
+        {
+            SetLoggedInPlayer(loggedInPlayer);
+        }
+
+        public void ShowLoginDialog()
+        {
+            var loginWindow = new LoginWindow();
+            if (loginWindow.ShowDialog() == true && loginWindow.LoggedInPlayer != null)
+            {
+                SetLoggedInPlayer(loginWindow.LoggedInPlayer);
+            }
+            else
+            {
+                // If login is cancelled or fails, show a message but don't close the app
+                MessageBox.Show("You need to login to play games. Click 'Connect to Server' to login later.", 
+                    "Login Required", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void SetLoggedInPlayer(Player player)
+        {
+            currentPlayer = player;
             UpdatePlayerInfo();
             UpdateGameStatus();
+            ConnectButton.Content = "✓ Connected";
+            ConnectButton.IsEnabled = false;
         }
         
         private void UpdatePlayerInfo()
@@ -57,8 +96,12 @@ namespace Connect4Client
             // Update the UI to show player information
             if (currentPlayer != null)
             {
-                PlayerNameText.Text = $"Player: {currentPlayer.FirstName} (ID: {currentPlayer.PlayerId})";
+                PlayerNameText.Text = currentPlayer.FirstName;
                 UpdateStatistics();
+            }
+            else
+            {
+                PlayerNameText.Text = "Not Connected";
             }
         }
         
@@ -156,7 +199,15 @@ namespace Connect4Client
         
         private async Task MakePlayerMove(int column)
         {
-            if (currentGame == null) return;
+            if (currentGame == null || currentPlayer == null) 
+            {
+                if (currentPlayer == null)
+                {
+                    MessageBox.Show("Please login first to make a move.", "Login Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    ShowLoginDialog();
+                }
+                return;
+            }
             
             try
             {
@@ -546,6 +597,12 @@ namespace Connect4Client
                 GamesLostText.Text = $"Games Lost: {currentPlayer.GamesLost}";
                 GamesPlayedText.Text = $"Games Played: {currentPlayer.GamesPlayed}";
             }
+            else
+            {
+                GamesWonText.Text = "Games Won: --";
+                GamesLostText.Text = "Games Lost: --";
+                GamesPlayedText.Text = "Games Played: --";
+            }
         }
         
         private async void NewGameButton_Click(object sender, RoutedEventArgs e)
@@ -557,6 +614,13 @@ namespace Connect4Client
         {
             try
             {
+                if (currentPlayer == null)
+                {
+                    MessageBox.Show("Please login first to start a game.", "Login Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    ShowLoginDialog();
+                    return;
+                }
+
                 // Start new game on server
                 var response = await apiService.StartGame(currentPlayer.PlayerId);
                 
@@ -610,15 +674,7 @@ namespace Connect4Client
         
         private void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
-            var loginWindow = new LoginWindow();
-            if (loginWindow.ShowDialog() == true && loginWindow.LoggedInPlayer != null)
-            {
-                currentPlayer = loginWindow.LoggedInPlayer;
-                PlayerNameText.Text = currentPlayer?.FirstName ?? "Unknown";
-                ConnectButton.Content = "Connected";
-                ConnectButton.IsEnabled = false;
-                UpdateStatistics();
-            }
+            ShowLoginDialog();
         }
         
         private async Task SaveGameState()
