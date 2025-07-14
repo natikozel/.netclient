@@ -35,7 +35,6 @@ namespace Connect4Client
                 }
                 else
                 {
-                    // Login cancelled or failed - exit application
                     Shutdown();
                 }
             }
@@ -51,23 +50,17 @@ namespace Connect4Client
         {
             try
             {
-                // Get the application directory (where the executable is running from)
                 string appDirectory = AppDomain.CurrentDomain.BaseDirectory;
-                
-                // Go up to find the project root (where the .mdf file should be)
                 string projectRoot = Path.GetFullPath(Path.Combine(appDirectory, "..", "..", ".."));
                 string dbPath = Path.Combine(projectRoot, "Connect4ClientDb.mdf");
                 
-                // Configure services
                 var services = new ServiceCollection();
                 
-                // Add DbContext with SQL Server pointing to local .mdf file
                 services.AddDbContext<GameContext>(options =>
                     options.UseSqlServer($"Server=(localdb)\\mssqllocaldb;AttachDbFilename={dbPath};Database=Connect4ClientDb;Trusted_Connection=True;MultipleActiveResultSets=true"));
                 
                 serviceProvider = services.BuildServiceProvider();
                 
-                // Initialize the database
                 using var scope = serviceProvider.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<GameContext>();
                 context.Database.EnsureCreated();

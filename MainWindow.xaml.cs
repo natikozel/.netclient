@@ -12,21 +12,18 @@ namespace Connect4Client
 {
     public partial class MainWindow : Window
     {
-        // Game constants
         private const int ROWS = 6;
         private const int COLUMNS = 7;
         
-        // Game state
         private Rectangle[,] gameBoard = null!;
         private Ellipse[,] gamePieces = null!;
         private int[,] boardState = null!;
         private bool isPlayerTurn = true;
         private bool gameActive = false;
-        private bool isProcessingMove = false; // Prevent multiple simultaneous moves
-        private Player? currentPlayer; // Make nullable since we start without login
+        private bool isProcessingMove = false;
+        private Player? currentPlayer;
         private GameDto? currentGame;
         
-        // Animation components
         private DispatcherTimer animationTimer = null!;
         private DispatcherTimer cpuMoveTimer = null!;
         private DispatcherTimer colorChangeTimer = null!;
@@ -35,11 +32,9 @@ namespace Connect4Client
         private int animationRow = -1;
         private double animationSpeed = 8.0;
         
-        // Services
         private readonly GameService gameService;
         private readonly ApiService apiService;
         
-                // Default parameterless constructor
         public MainWindow()
         {
             try
@@ -67,16 +62,13 @@ namespace Connect4Client
         
         private void SetResponsiveWindowSize()
         {
-            // Get primary screen dimensions
             var screenWidth = SystemParameters.PrimaryScreenWidth;
             var screenHeight = SystemParameters.PrimaryScreenHeight;
             
-            // Set window to 80% of screen size, but respect min/max limits
             Width = Math.Max(800, Math.Min(screenWidth * 0.8, 1200));
             Height = Math.Max(600, Math.Min(screenHeight * 0.8, 900));
         }
 
-        // Constructor that accepts a logged-in player (for compatibility)
         public MainWindow(Player loggedInPlayer) : this()
         {
             SetLoggedInPlayer(loggedInPlayer);
@@ -91,7 +83,6 @@ namespace Connect4Client
             }
             else
             {
-                // If login is cancelled or fails, show a message but don't close the app
                 MessageBox.Show("You need to login to play games. Click 'Connect to Server' to login later.", 
                     "Login Required", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -105,7 +96,6 @@ namespace Connect4Client
             ConnectButton.Content = "✓ Connected";
             ConnectButton.IsEnabled = false;
             
-            // Auto-start game after login for better user experience
             _ = Task.Run(async () =>
             {
                 await Dispatcher.InvokeAsync(async () =>
@@ -117,7 +107,6 @@ namespace Connect4Client
         
         private void UpdatePlayerInfo()
         {
-            // Update the UI to show player information
             if (currentPlayer != null)
             {
                 PlayerNameText.Text = currentPlayer.FirstName;
@@ -131,17 +120,14 @@ namespace Connect4Client
         
         private void InitializeTimers()
         {
-            // Animation timer for dropping pieces
             animationTimer = new DispatcherTimer();
             animationTimer.Interval = TimeSpan.FromMilliseconds(50);
             animationTimer.Tick += AnimationTimer_Tick;
             
-            // CPU move timer
             cpuMoveTimer = new DispatcherTimer();
             cpuMoveTimer.Interval = TimeSpan.FromMilliseconds(1500);
             cpuMoveTimer.Tick += CpuMoveTimer_Tick;
             
-            // Color change animation timer
             colorChangeTimer = new DispatcherTimer();
             colorChangeTimer.Interval = TimeSpan.FromMilliseconds(200);
             colorChangeTimer.Tick += ColorChangeTimer_Tick;

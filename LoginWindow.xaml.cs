@@ -34,13 +34,11 @@ namespace Connect4Client
                 return;
             }
 
-            // Disable the button while processing
             btnLogin.IsEnabled = false;
             btnLogin.Content = "Checking...";
 
             try
             {
-                // Test connection first
                 var connectionTest = await apiService.TestConnection();
                 if (!connectionTest)
                 {
@@ -48,7 +46,6 @@ namespace Connect4Client
                     return;
                 }
 
-                // Check if player exists
                 var player = await apiService.GetPlayerByPlayerId(playerId);
                 if (player == null)
                 {
@@ -56,7 +53,6 @@ namespace Connect4Client
                     return;
                 }
 
-                // Login successful
                 LoggedInPlayer = player;
                 DialogResult = true;
                 this.Close();
@@ -76,7 +72,6 @@ namespace Connect4Client
         {
             try
             {
-                // Open the registration website
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "http://localhost:5000/Register",
