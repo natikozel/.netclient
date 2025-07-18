@@ -272,7 +272,6 @@ namespace Connect4Client
                 else if (currentGame.Status == "Lost")
                 {
                     // Show CPU thinking animation
-                    AnimationStatusText.Text = "CPU is thinking...";
                     await Task.Delay(800); // CPU "thinking" delay
                     
                     await HandleGameWin(false);
@@ -286,9 +285,7 @@ namespace Connect4Client
                     // Game continues - show CPU thinking if there's a CPU move
                     if (response.CpuMove.HasValue)
                     {
-                        AnimationStatusText.Text = "CPU is thinking...";
                         await Task.Delay(800); // CPU "thinking" delay
-                        AnimationStatusText.Text = "Ready";
                     }
                     
                     UpdateGameStatus();
@@ -448,7 +445,7 @@ namespace Connect4Client
             // Show animation status
             AnimationStatusText.Text = "Dropping piece...";
             AnimationProgressBar.Visibility = Visibility.Visible;
-            
+
             // Create the dropping piece
             droppingPiece = new Ellipse
             {
@@ -547,24 +544,14 @@ namespace Connect4Client
         
         private void AnimateThinking()
         {
-            AnimationStatusText.Text = "CPU is thinking...";
-            
-            // Start color change animation for CPU indicator
+            // CPU thinking animation - removed status text since UI was updated
             colorChangeTimer.Start();
         }
         
         private void ColorChangeTimer_Tick(object? sender, EventArgs e)
         {
-            // Simple animation by changing animation status text color
-            var colors = new[] { Brushes.Orange, Brushes.Yellow, Brushes.Gold };
-            var currentColor = AnimationStatusText.Foreground;
-            
-            if (currentColor == colors[0])
-                AnimationStatusText.Foreground = colors[1];
-            else if (currentColor == colors[1])
-                AnimationStatusText.Foreground = colors[2];
-            else
-                AnimationStatusText.Foreground = colors[0];
+            // Animation timer - kept for potential future use
+            // Status text was removed from UI
         }
         
         // Client-side win checking removed - server handles all game logic
@@ -647,7 +634,7 @@ namespace Connect4Client
                     {
                         if (boardState[row, col] == 1) // Player pieces
                         {
-                            gamePieces[row, col].Fill = i % 2 == 0 ? Brushes.Gold : Brushes.Red;
+                            gamePieces[row, col].Fill = i % 2 == 0 ? Brushes.LimeGreen : Brushes.Red;
                         }
                     }
                 }
@@ -667,7 +654,7 @@ namespace Connect4Client
             
             GameStatusText.Text = "In Progress";
             CurrentPlayerText.Text = isPlayerTurn ? "Your Turn" : "CPU's Turn";
-            GameStatusText.Foreground = isPlayerTurn ? Brushes.Green : Brushes.Orange;
+            GameStatusText.Foreground = isPlayerTurn ? Brushes.Green : Brushes.Blue;
         }
         
         private void UpdateStatistics()
@@ -736,7 +723,7 @@ namespace Connect4Client
                 UpdatePlayerInfo();
                 AnimationStatusText.Text = "Ready";
                 AnimationProgressBar.Visibility = Visibility.Collapsed;
-                
+
                 // Save initial game state
                 await SaveGameState();
             }
@@ -824,4 +811,4 @@ namespace Connect4Client
         
         // AnimateGameRestoration removed - using UpdateVisualBoard instead
     }
-} 
+}

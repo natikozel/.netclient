@@ -183,15 +183,15 @@
                                 Margin="0,0,10,0"
                                 Click="SaveGameButton_Click"/>
                                 
-                        <Button Grid.Column="1" 
-                                x:Name="LoadGameButton" 
+                        <Button Grid.Column="1"
+                                x:Name="LoadGameButton"
                                 Content="📁 Load Game" 
                                 Style="{StaticResource WarningButtonStyle}"
                                 FontSize="16"
                                 Padding="25,12"
                                 Margin="5,0,5,0"
                                 Click="LoadGameButton_Click"/>
-                        
+
                         <!-- Animation Status -->
                         <StackPanel Grid.Column="2" Margin="15,0,0,0">
                             <TextBlock Text="⚡ Animation Status" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
@@ -199,9 +199,9 @@
                                 <Ellipse Width="10" Height="10" Fill="#10B981" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="AnimationStatusText" Text="Ready" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}"/>
                             </StackPanel>
-                            <ProgressBar x:Name="AnimationProgressBar" 
-                                         Height="8" 
-                                         Background="#E5E7EB" 
+                            <ProgressBar x:Name="AnimationProgressBar"
+                                         Height="8"
+                                         Background="#E5E7EB"
                                          Foreground="{StaticResource PrimaryBrush}"
                                          Visibility="Collapsed"
                                          Margin="0,5,0,0"
@@ -336,4 +336,4 @@
             </StackPanel>
         </Border>
     </Grid>
-</Window> 
+</Window>
