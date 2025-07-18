@@ -18,6 +18,7 @@ namespace Connect4Client.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PlayerId = table.Column<int>(type: "int", nullable: false),
+                    GameId = table.Column<int>(type: "int", nullable: false),
                     BoardStateJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsPlayerTurn = table.Column<bool>(type: "bit", nullable: false),
                     SavedAt = table.Column<DateTime>(type: "datetime2", nullable: false),

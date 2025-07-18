@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Connect4Client"
         mc:Ignorable="d"
-        Title="Connect 4 - Player Login" Height="600" Width="500"
+        Title="Connect 4 - Player Login" Height="650" Width="500"
         ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
         Background="White">
     
@@ -130,13 +130,13 @@
         
         <!-- Footer -->
         <Border Grid.Row="2" Background="#F8FAFC" 
-                Height="80" CornerRadius="0,0,0,0">
+                Height="120" CornerRadius="0,0,0,0">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <TextBlock Text="Don't have an account?" 
                            FontSize="14" Foreground="#6B7280" 
-                           HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                           HorizontalAlignment="Center" Margin="0,0,0,12"/>
                 <Button x:Name="btnRegister" Content="Register on Website" 
-                        Height="35" Background="Transparent" 
+                        Height="40" Background="Transparent" 
                         Foreground="#4F46E5" FontSize="14" FontWeight="SemiBold"
                         BorderBrush="#4F46E5" BorderThickness="2"
                         Click="RegisterButton_Click" Cursor="Hand">
@@ -145,7 +145,7 @@
                             <Border Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="8" Padding="20,8">
+                                    CornerRadius="8" Padding="20,10">
                                 <ContentPresenter HorizontalAlignment="Center" 
                                                   VerticalAlignment="Center"/>
                             </Border>

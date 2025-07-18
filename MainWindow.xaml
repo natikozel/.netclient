@@ -94,13 +94,22 @@
                         <Button Grid.Column="1" 
                                 x:Name="NewGameButton" 
                                 Content="🎯 New Game" 
-                                Style="{StaticResource GameButtonStyle}"
+                                Style="{StaticResource EnhancedGameButtonStyle}"
                                 FontSize="18"
                                 FontWeight="Bold"
-                                Padding="30,15"
+                                Padding="24,12"
                                 Click="NewGameButton_Click"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"/>
+
+                        <Button Grid.Column="0"
+                                x:Name="LoadGameButton"
+                                Content="📁 Load Game" 
+                                Style="{StaticResource EnhancedWarningButtonStyle}"
+                                FontSize="16"
+                                Padding="24,12"
+                                HorizontalAlignment="Center"
+                                Click="LoadGameButton_Click"/>
                         
                         <!-- Current Turn Info -->
                         <StackPanel Grid.Column="2" HorizontalAlignment="Right">
@@ -165,50 +174,23 @@
                     </Grid>
                 </Border>
                 
-                <!-- Secondary Game Controls -->
+                <!-- Secondary Game Controls
                 <Border Grid.Row="2" Style="{StaticResource CardStyle}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         
-                        <Button Grid.Column="0" 
-                                x:Name="SaveGameButton" 
-                                Content="💾 Save Game" 
-                                Style="{StaticResource SuccessButtonStyle}"
-                                FontSize="16"
-                                Padding="25,12"
-                                Margin="0,0,10,0"
-                                Click="SaveGameButton_Click"/>
-                                
-                        <Button Grid.Column="1"
+                        <Button Grid.Column="0"
                                 x:Name="LoadGameButton"
                                 Content="📁 Load Game" 
-                                Style="{StaticResource WarningButtonStyle}"
+                                Style="{StaticResource EnhancedWarningButtonStyle}"
                                 FontSize="16"
                                 Padding="25,12"
-                                Margin="5,0,5,0"
+                                HorizontalAlignment="Center"
                                 Click="LoadGameButton_Click"/>
-
-                        <!-- Animation Status -->
-                        <StackPanel Grid.Column="2" Margin="15,0,0,0">
-                            <TextBlock Text="⚡ Animation Status" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="10" Height="10" Fill="#10B981" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="AnimationStatusText" Text="Ready" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            </StackPanel>
-                            <ProgressBar x:Name="AnimationProgressBar"
-                                         Height="8"
-                                         Background="#E5E7EB"
-                                         Foreground="{StaticResource PrimaryBrush}"
-                                         Visibility="Collapsed"
-                                         Margin="0,5,0,0"
-                                         Style="{DynamicResource {x:Type ProgressBar}}"/>
-                        </StackPanel>
                     </Grid>
-                </Border>
+                </Border> -->
             </Grid>
             
             <!-- Right Panel - Game Information -->
@@ -235,12 +217,12 @@
                             </StackPanel>
                         </Border>
                         
-                        <Border Background="#FFFBEB" CornerRadius="10" Padding="15">
+                        <Border Background="#EFF6FF" CornerRadius="10" Padding="15">
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse Width="32" Height="32" Fill="{StaticResource Player2Brush}" Margin="0,0,15,0"/>
                                 <StackPanel>
                                     <TextBlock Text="CPU (Computer)" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
-                                    <TextBlock Text="Yellow Player" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Text="Blue Player" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
@@ -308,7 +290,7 @@
                             <TextBlock Text="• Click arrows above columns to drop pieces" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                             <TextBlock Text="• Get 4 pieces in a row to win" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                             <TextBlock Text="• Horizontal, vertical, or diagonal counts" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
-                            <TextBlock Text="• You are red, CPU is yellow" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                            <TextBlock Text="• You are red, CPU is blue" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                             <TextBlock Text="• CPU will play automatically after you" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}"/>
                         </StackPanel>
                     </StackPanel>

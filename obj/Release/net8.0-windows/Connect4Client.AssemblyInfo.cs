@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Connect4Client")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+284a14feff831b0fac602834bae955ec2409e65d")]
 [assembly: System.Reflection.AssemblyProductAttribute("Connect4Client")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Connect4Client")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

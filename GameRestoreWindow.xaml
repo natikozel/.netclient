@@ -4,6 +4,27 @@
         Title="Restore Game" Height="600" Width="800"
         ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
         Background="{StaticResource BackgroundBrush}">
+    <Window.Resources>
+        <!-- Modern DataGrid Style -->
+        <Style x:Key="ModernDataGridStyle" TargetType="DataGrid">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="RowBackground" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="AlternatingRowBackground" Value="#F8FAFC"/>
+            <Setter Property="RowHeight" Value="40"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="CanUserReorderColumns" Value="False"/>
+            <Setter Property="CanUserResizeColumns" Value="False"/>
+            <Setter Property="CanUserResizeRows" Value="False"/>
+            <Setter Property="CanUserSortColumns" Value="False"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="SelectionUnit" Value="FullRow"/>
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="100"/>
@@ -98,12 +119,12 @@
         <Border Grid.Row="2" Background="#F8FAFC" CornerRadius="0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Button x:Name="btnRestore" Content="🔄 Restore Game" 
-                        Style="{StaticResource SuccessButtonStyle}"
+                        Style="{StaticResource EnhancedSuccessButtonStyle}"
                         Width="150" Height="45" 
                         Margin="0,0,15,0"
                         Click="RestoreButton_Click"/>
                 <Button x:Name="btnCancel" Content="❌ Cancel" 
-                        Style="{StaticResource GameButtonStyle}"
+                        Style="{StaticResource EnhancedGameButtonStyle}"
                         Background="#6B7280"
                         Width="150" Height="45"
                         Click="CancelButton_Click">

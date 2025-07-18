@@ -21,6 +21,16 @@ namespace Connect4Client.Data
                     v => JsonSerializer.Deserialize<int[,]>(v, (JsonSerializerOptions?)null) ?? new int[6, 7]
                 );
 
+            // Ensure GameId is properly configured
+            modelBuilder.Entity<SavedGame>()
+                .Property(e => e.GameId)
+                .IsRequired();
+
+            // Add unique constraint for PlayerId + GameId combination
+            modelBuilder.Entity<SavedGame>()
+                .HasIndex(e => new { e.PlayerId, e.GameId })
+                .IsUnique();
+
             base.OnModelCreating(modelBuilder);
         }
     }

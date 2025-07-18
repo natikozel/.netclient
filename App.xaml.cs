@@ -50,23 +50,41 @@ namespace Connect4Client
         {
             try
             {
+                // Use the application directory directly for the database file
                 string appDirectory = AppDomain.CurrentDomain.BaseDirectory;
-                string projectRoot = Path.GetFullPath(Path.Combine(appDirectory, "..", "..", ".."));
-                string dbPath = Path.Combine(projectRoot, "Connect4ClientDb.mdf");
+                string dbPath = Path.Combine(appDirectory, "Connect4ClientDb.mdf");
                 
                 var services = new ServiceCollection();
                 
+                // Use a simple, consistent database name
+                string connectionString = $"Server=(localdb)\\mssqllocaldb;AttachDbFilename={dbPath};Database=Connect4ClientDb;Trusted_Connection=True;MultipleActiveResultSets=true;Integrated Security=true";
+                
                 services.AddDbContext<GameContext>(options =>
-                    options.UseSqlServer($"Server=(localdb)\\mssqllocaldb;AttachDbFilename={dbPath};Database=Connect4ClientDb;Trusted_Connection=True;MultipleActiveResultSets=true"));
+                    options.UseSqlServer(connectionString));
                 
                 serviceProvider = services.BuildServiceProvider();
                 
                 using var scope = serviceProvider.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<GameContext>();
+                
+                // Force recreate the database to ensure proper schema
+                try
+                {
+                    context.Database.EnsureDeleted();
+                }
+                catch
+                {
+                    // Ignore errors if database doesn't exist
+                }
+                
                 context.Database.EnsureCreated();
+                
+                System.Diagnostics.Debug.WriteLine("Database initialized successfully");
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Service initialization error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                 MessageBox.Show($"Service initialization error: {ex.Message}", 
                     "Service Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 throw;

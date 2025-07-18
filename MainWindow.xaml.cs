@@ -51,6 +51,40 @@ namespace Connect4Client
                 InitializeColumnButtons();
                 UpdatePlayerInfo();
                 UpdateGameStatus();
+                
+                // Test database connection and save functionality
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        // First, query the database directly
+                        DatabaseQuery.QueryDatabase();
+                        
+                        // Test service provider
+                        System.Diagnostics.Debug.WriteLine($"Service provider is null: {((App)App.Current).Services == null}");
+                        
+                        var dbTest = await gameService.TestDatabaseConnection();
+                        System.Diagnostics.Debug.WriteLine($"Database connection test result: {dbTest}");
+                        
+                        // Test saving a game
+                        if (dbTest)
+                        {
+                            var testBoard = new int[6, 7];
+                            testBoard[0, 0] = 1; // Add a test piece
+                            await gameService.SaveGameState(999, testBoard, true, 999);
+                            System.Diagnostics.Debug.WriteLine("Test game save successful");
+                            
+                            // Test loading games
+                            var savedGames = await gameService.GetSavedGamesForPlayer(999);
+                            System.Diagnostics.Debug.WriteLine($"Found {savedGames.Count} test games");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Database test failed: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -363,12 +397,12 @@ namespace Connect4Client
                         case 2: // CPU
                             if (oldValue == 0) // Only if it's actually new
                             {
-                                piece.Fill = Brushes.Yellow;
+                                piece.Fill = Brushes.Blue;
                                 piece.Visibility = Visibility.Hidden; // Will be shown by animation
                             }
                             else
                             {
-                                piece.Fill = Brushes.Yellow;
+                                piece.Fill = Brushes.Blue;
                                 piece.Visibility = Visibility.Visible;
                             }
                             break;
@@ -401,7 +435,7 @@ namespace Connect4Client
             {
                 Width = piece.ActualWidth > 0 ? piece.ActualWidth : 40,
                 Height = piece.ActualHeight > 0 ? piece.ActualHeight : 40,
-                Fill = isPlayerMove ? Brushes.Red : Brushes.Yellow,
+                Fill = isPlayerMove ? Brushes.Red : Brushes.Blue,
                 Stroke = Brushes.DarkBlue,
                 StrokeThickness = 2
             };
@@ -443,8 +477,8 @@ namespace Connect4Client
         private async Task AnimateDropPiece(int targetRow, int targetColumn, bool isPlayerMove)
         {
             // Show animation status
-            AnimationStatusText.Text = "Dropping piece...";
-            AnimationProgressBar.Visibility = Visibility.Visible;
+            
+
 
             // Create the dropping piece
             droppingPiece = new Ellipse
@@ -478,8 +512,8 @@ namespace Connect4Client
             await AnimateGlowEffect(targetRow, targetColumn);
             
             // Hide animation status
-            AnimationStatusText.Text = "Ready";
-            AnimationProgressBar.Visibility = Visibility.Collapsed;
+            
+
         }
         
         private void AnimationTimer_Tick(object? sender, EventArgs e)
@@ -539,7 +573,7 @@ namespace Connect4Client
             // This timer is no longer needed but kept for compatibility
             cpuMoveTimer.Stop();
             colorChangeTimer.Stop();
-            AnimationStatusText.Text = "";
+
         }
         
         private void AnimateThinking()
@@ -636,6 +670,10 @@ namespace Connect4Client
                         {
                             gamePieces[row, col].Fill = i % 2 == 0 ? Brushes.LimeGreen : Brushes.Red;
                         }
+                        else if (boardState[row, col] == 2) // CPU pieces
+                        {
+                            gamePieces[row, col].Fill = i % 2 == 0 ? Brushes.LimeGreen : Brushes.Blue;
+                        }
                     }
                 }
                 
@@ -721,11 +759,23 @@ namespace Connect4Client
                 
                 UpdateGameStatus();
                 UpdatePlayerInfo();
-                AnimationStatusText.Text = "Ready";
-                AnimationProgressBar.Visibility = Visibility.Collapsed;
+
+    
 
                 // Save initial game state
                 await SaveGameState();
+                
+                // Test save by creating a test game state
+                System.Diagnostics.Debug.WriteLine("Testing game save functionality...");
+                try
+                {
+                    await gameService.SaveGameState(currentPlayer.Id, boardState, isPlayerTurn, currentGame.Id);
+                    System.Diagnostics.Debug.WriteLine("Test save completed successfully");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Test save failed: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
@@ -740,42 +790,49 @@ namespace Connect4Client
         
         private async Task SaveGameState()
         {
-            if (currentGame == null || currentPlayer == null) return;
+            if (currentGame == null || currentPlayer == null) 
+            {
+                System.Diagnostics.Debug.WriteLine("SaveGameState: currentGame or currentPlayer is null");
+                return;
+            }
             
             try
             {
+                System.Diagnostics.Debug.WriteLine($"Saving game state - PlayerId: {currentPlayer.Id}, GameId: {currentGame.Id}, IsPlayerTurn: {isPlayerTurn}");
                 await gameService.SaveGameState(currentPlayer.Id, boardState, isPlayerTurn, currentGame.Id);
+                System.Diagnostics.Debug.WriteLine("Game state saved successfully");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error saving game state: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             }
         }
         
-        private async void SaveGameButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (currentPlayer == null)
-            {
-                MessageBox.Show("Please connect to server first!", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            
-            await SaveGameState();
-            MessageBox.Show("Game saved successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
+
         
         private async void LoadGameButton_Click(object sender, RoutedEventArgs e)
         {
-            if (currentPlayer == null)
+            try
             {
-                MessageBox.Show("Please connect to server first!", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                if (currentPlayer == null)
+                {
+                    MessageBox.Show("Please connect to server first!", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                
+                var restoreWindow = new GameRestoreWindow(currentPlayer.Id);
+                restoreWindow.Owner = this; // Set the owner to prevent crashes
+                restoreWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                
+                if (restoreWindow.ShowDialog() == true && restoreWindow.SelectedGame != null)
+                {
+                    await RestoreGame(restoreWindow.SelectedGame);
+                }
             }
-            
-            var restoreWindow = new GameRestoreWindow(currentPlayer.Id);
-            if (restoreWindow.ShowDialog() == true && restoreWindow.SelectedGame != null)
+            catch (Exception ex)
             {
-                await RestoreGame(restoreWindow.SelectedGame);
+                MessageBox.Show($"Error loading games: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         
@@ -783,6 +840,12 @@ namespace Connect4Client
         {
             try
             {
+                if (savedGame == null)
+                {
+                    MessageBox.Show("Invalid game data selected.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
                 // Restore game state
                 boardState = savedGame.BoardStateJson;
                 isPlayerTurn = savedGame.IsPlayerTurn;
@@ -806,6 +869,11 @@ namespace Connect4Client
             catch (Exception ex)
             {
                 MessageBox.Show($"Error restoring game: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                // Reset game state on error
+                gameActive = false;
+                isPlayerTurn = true;
+                UpdateGameStatus();
             }
         }
         
