@@ -61,7 +61,7 @@ namespace Connect4Client
                 using var scope = serviceProvider.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<GameContext>();
                 
-                context.Database.EnsureCreated();
+                context.Database.CanConnect();
             }
             catch (Exception ex)
             {

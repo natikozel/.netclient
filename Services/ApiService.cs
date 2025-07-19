@@ -32,6 +32,7 @@ namespace Connect4Client.Services
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"API Error in GetPlayerByPlayerId: {ex.Message}");
                 return null;
             }
         }
@@ -48,6 +49,7 @@ namespace Connect4Client.Services
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"API Error in UpdatePlayerStatistics: {ex.Message}");
                 return false;
             }
         }
@@ -68,6 +70,7 @@ namespace Connect4Client.Services
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"API Error in GetAllPlayers: {ex.Message}");
                 return new List<Player>();
             }
         }
@@ -142,6 +145,7 @@ namespace Connect4Client.Services
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"API Error in GetGame: {ex.Message}");
                 return null;
             }
         }
