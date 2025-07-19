@@ -7,12 +7,11 @@ namespace Connect4Client.Models
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public string Status { get; set; } = string.Empty;
-        public int[][] Board { get; set; } = new int[6][]; // Changed from int[,] to int[][]
+        public int[][] Board { get; set; } = new int[6][];
         public string CurrentPlayer { get; set; } = string.Empty;
         public string? Winner { get; set; }
         public PlayerDto? Player { get; set; }
 
-        // Constructor to initialize jagged array
         public GameDto()
         {
             Board = new int[6][];
@@ -22,7 +21,6 @@ namespace Connect4Client.Models
             }
         }
 
-        // Helper method to convert from 2D array to jagged array
         public static int[][] From2DArray(int[,] array2D)
         {
             int rows = array2D.GetLength(0);
@@ -40,7 +38,6 @@ namespace Connect4Client.Models
             return jaggedArray;
         }
 
-        // Helper method to convert from jagged array to 2D array
         public static int[,] To2DArray(int[][] jaggedArray)
         {
             if (jaggedArray == null || jaggedArray.Length == 0)

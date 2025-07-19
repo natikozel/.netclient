@@ -23,10 +23,7 @@ namespace Connect4Client
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"Loading saved games for player {playerId}");
                 var savedGames = await gameService.GetSavedGamesForPlayer(playerId);
-                
-                System.Diagnostics.Debug.WriteLine($"Found {savedGames?.Count ?? 0} saved games");
                 
                 if (savedGames == null || savedGames.Count == 0)
                 {
@@ -44,12 +41,9 @@ namespace Connect4Client
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading saved games: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                 MessageBox.Show($"Error loading saved games: {ex.Message}", "Error", 
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 
-                // Show no games panel on error
                 SavedGamesGrid.Visibility = Visibility.Collapsed;
                 NoGamesPanel.Visibility = Visibility.Visible;
                 btnRestore.IsEnabled = false;

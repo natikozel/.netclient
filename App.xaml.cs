@@ -31,7 +31,6 @@ namespace Connect4Client
                     mainWindow.Show();
                     Application.Current.MainWindow = mainWindow;
                     Application.Current.ShutdownMode = ShutdownMode.OnMainWindowClose;
-                    
                 }
                 else
                 {

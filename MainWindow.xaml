@@ -90,8 +90,9 @@
                             <TextBlock x:Name="CurrentPlayerText" Text="Waiting for connection..." FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,5,0,0"/>
                         </StackPanel>
                         
-                        <!-- Primary Game Control -->
-                        <Button Grid.Column="1" 
+                        <!-- Primary Game Controls -->
+                        <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0">
+                            <Button 
                                 x:Name="NewGameButton" 
                                 Content="🎯 New Game" 
                                 Style="{StaticResource EnhancedGameButtonStyle}"
@@ -99,20 +100,22 @@
                                 FontWeight="Bold"
                                 Padding="24,12"
                                 Click="NewGameButton_Click"
+                                Margin="0,0,0,10"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"/>
-
-                        <Button Grid.Column="0"
+                            <Button
                                 x:Name="LoadGameButton"
                                 Content="📁 Load Game" 
-                                Style="{StaticResource EnhancedWarningButtonStyle}"
-                                FontSize="16"
+                                Style="{StaticResource EnhancedGameButtonStyle}"
+                                FontSize="18"
                                 Padding="24,12"
                                 HorizontalAlignment="Center"
-                                Click="LoadGameButton_Click"/>
+                                Click="LoadGameButton_Click"
+                                VerticalAlignment="Center"/>
+                        </StackPanel>
                         
                         <!-- Current Turn Info -->
-                        <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                        <StackPanel Grid.Column="3" HorizontalAlignment="Right">
                             <TextBlock Text="👥 Current Turn" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Ellipse Width="24" Height="24" Fill="{StaticResource Player1Brush}" Margin="0,0,10,0"/>

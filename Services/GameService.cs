@@ -11,108 +11,70 @@ namespace Connect4Client.Services
 
         public GameService()
         {
-            // Get service provider from Application
             serviceProvider = ((App)App.Current).Services ?? throw new InvalidOperationException("Service provider not initialized");
         }
 
-        public async Task SaveGameState(int playerId, int[,] boardState, bool isPlayerTurn, int gameId)
+        /// <summary>
+        /// Saves the current game state to the database (only for finished games)
+        /// </summary>
+        public async Task SaveGameState(int playerId, int[,] boardState, bool isPlayerTurn, int gameId, string gameStatus, List<MoveRecord>? turnHistory = null)
         {
             try
             {
-                System.Windows.MessageBox.Show($"=== GAMESERVICE SAVEGAMESTATE - PlayerId: {playerId}, GameId: {gameId} ===", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                
                 if (serviceProvider == null)
                 {
-                    System.Windows.MessageBox.Show("GameService: Service provider is null!", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                     throw new InvalidOperationException("Service provider is null");
                 }
                 
-                System.Windows.MessageBox.Show("GameService: Service provider is available", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                
                 using var scope = serviceProvider.CreateScope();
-                System.Windows.MessageBox.Show("GameService: Created service scope", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                
                 var context = scope.ServiceProvider.GetRequiredService<GameContext>();
-                System.Windows.MessageBox.Show("GameService: Got GameContext from service provider", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 
-                System.Windows.MessageBox.Show($"GameService: Saving game state for PlayerId: {playerId}, GameId: {gameId}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                
-                // Convert board state to string
                 string boardStateString = ConvertBoardStateToString(boardState);
-                System.Windows.MessageBox.Show($"GameService: Board state converted to string: {boardStateString}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                string turnHistoryString = turnHistory != null ? System.Text.Json.JsonSerializer.Serialize(turnHistory) : "";
                 
-                // Check if saved game for this game ID already exists
-                System.Windows.MessageBox.Show("GameService: Checking for existing game...", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 var existingGame = await context.SavedGames
                     .FirstOrDefaultAsync(g => g.PlayerId == playerId && g.GameId == gameId);
                 
-                System.Windows.MessageBox.Show($"GameService: Existing game found: {existingGame != null}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                
                 if (existingGame != null)
                 {
-                    System.Windows.MessageBox.Show("GameService: Updating existing saved game", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    // Update existing saved game
-                    try
-                    {
-                        System.Windows.MessageBox.Show($"GameService: Setting board state string - dimensions: {boardState.GetLength(0)}x{boardState.GetLength(1)}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                        existingGame.BoardStateJson = boardStateString;
-                        System.Windows.MessageBox.Show("GameService: Board state string set successfully", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Windows.MessageBox.Show($"GameService: Error setting board state string: {ex.Message}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                        throw;
-                    }
+                    existingGame.BoardStateJson = boardStateString;
                     existingGame.IsPlayerTurn = isPlayerTurn;
                     existingGame.SavedAt = DateTime.Now;
-                    existingGame.GameStatus = "InProgress";
-                    System.Windows.MessageBox.Show($"GameService: Updated existing saved game - Id: {existingGame.Id}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    existingGame.GameStatus = gameStatus;
+                    existingGame.MoveHistoryJson = turnHistoryString;
                 }
                 else
                 {
-                    System.Windows.MessageBox.Show("GameService: Creating new saved game", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    // Create new saved game
-                    try
+                    var savedGame = new SavedGame
                     {
-                        System.Windows.MessageBox.Show($"GameService: Creating saved game with board state string - dimensions: {boardState.GetLength(0)}x{boardState.GetLength(1)}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                        var savedGame = new SavedGame
-                        {
-                            PlayerId = playerId,
-                            GameId = gameId,
-                            BoardStateJson = boardStateString,
-                            IsPlayerTurn = isPlayerTurn,
-                            SavedAt = DateTime.Now,
-                            GameStatus = "InProgress"
-                        };
-                        
-                        context.SavedGames.Add(savedGame);
-                        System.Windows.MessageBox.Show($"GameService: Created new saved game object", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Windows.MessageBox.Show($"GameService: Error creating saved game: {ex.Message}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                        throw;
-                    }
+                        PlayerId = playerId,
+                        GameId = gameId,
+                        BoardStateJson = boardStateString,
+                        IsPlayerTurn = isPlayerTurn,
+                        SavedAt = DateTime.Now,
+                        GameStatus = gameStatus,
+                        MoveHistoryJson = turnHistoryString
+                    };
+                    
+                    context.SavedGames.Add(savedGame);
                 }
                 
-                System.Windows.MessageBox.Show("GameService: About to save changes to database", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                var result = await context.SaveChangesAsync();
-                System.Windows.MessageBox.Show($"GameService: SaveChangesAsync completed - affected rows: {result}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                System.Windows.MessageBox.Show($"GameService: Game state saved successfully", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                await context.SaveChangesAsync();
             }
             catch (Exception ex)
             {
-                var errorMessage = $"GameService: ERROR saving game state: {ex.Message}";
+                var errorMessage = $"Error saving game state: {ex.Message}";
                 if (ex.InnerException != null)
                 {
                     errorMessage += $"\n\nInner Exception: {ex.InnerException.Message}";
                 }
-                System.Windows.MessageBox.Show(errorMessage, "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                System.Windows.MessageBox.Show($"GameService: Stack trace: {ex.StackTrace}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                throw;
+                throw new InvalidOperationException(errorMessage, ex);
             }
         }
 
+        /// <summary>
+        /// Converts a 2D board state array to a string format for database storage
+        /// </summary>
         private string ConvertBoardStateToString(int[,] boardState)
         {
             try
@@ -131,11 +93,13 @@ namespace Connect4Client.Services
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"Error converting board state to string: {ex.Message}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                return "";
+                throw new InvalidOperationException($"Error converting board state to string: {ex.Message}", ex);
             }
         }
 
+        /// <summary>
+        /// Converts a string format board state back to a 2D array
+        /// </summary>
         private int[,] ConvertStringToBoardState(string boardStateString)
         {
             try
@@ -167,11 +131,13 @@ namespace Connect4Client.Services
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"Error converting string to board state: {ex.Message}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                return new int[6, 7];
+                throw new InvalidOperationException($"Error converting string to board state: {ex.Message}", ex);
             }
         }
 
+        /// <summary>
+        /// Loads the most recent game state for a player
+        /// </summary>
         public async Task<GameState?> LoadGameState(int playerId)
         {
             using var scope = serviceProvider.CreateScope();
@@ -183,8 +149,20 @@ namespace Connect4Client.Services
             if (savedGame == null)
                 return null;
             
-            // Convert string back to 2D array
             int[,] boardState = ConvertStringToBoardState(savedGame.BoardStateJson);
+            List<MoveRecord>? turnHistory = null;
+            
+            if (!string.IsNullOrEmpty(savedGame.MoveHistoryJson))
+            {
+                try
+                {
+                    turnHistory = System.Text.Json.JsonSerializer.Deserialize<List<MoveRecord>>(savedGame.MoveHistoryJson);
+                }
+                catch
+                {
+                    // If deserialization fails, turnHistory remains null
+                }
+            }
             
             return new GameState
             {
@@ -193,10 +171,14 @@ namespace Connect4Client.Services
                 BoardState = boardState,
                 IsPlayerTurn = savedGame.IsPlayerTurn,
                 SavedAt = savedGame.SavedAt,
-                GameStatus = savedGame.GameStatus
+                GameStatus = savedGame.GameStatus,
+                MoveHistory = turnHistory
             };
         }
 
+        /// <summary>
+        /// Deletes the saved game for a player
+        /// </summary>
         public async Task DeleteSavedGame(int playerId)
         {
             using var scope = serviceProvider.CreateScope();
@@ -212,6 +194,9 @@ namespace Connect4Client.Services
             }
         }
 
+        /// <summary>
+        /// Gets all saved games from the database
+        /// </summary>
         public async Task<List<SavedGame>> GetAllSavedGames()
         {
             using var scope = serviceProvider.CreateScope();
@@ -219,50 +204,69 @@ namespace Connect4Client.Services
             return await context.SavedGames.ToListAsync();
         }
 
+        /// <summary>
+        /// Gets all saved games for a specific player in chronological order
+        /// </summary>
         public async Task<List<SavedGame>> GetSavedGamesForPlayer(int playerId)
         {
             try
             {
-                System.Windows.MessageBox.Show($"=== GAMESERVICE GETSAVEDGAMESFORPLAYER - PlayerId: {playerId} ===", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                
                 if (serviceProvider == null)
                 {
-                    System.Windows.MessageBox.Show("GameService: Service provider is null!", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                     throw new InvalidOperationException("Service provider is null");
                 }
                 
                 using var scope = serviceProvider.CreateScope();
-                System.Windows.MessageBox.Show("GameService: Created service scope for getting saved games", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                
                 var context = scope.ServiceProvider.GetRequiredService<GameContext>();
-                System.Windows.MessageBox.Show("GameService: Got GameContext for getting saved games", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 
-                System.Windows.MessageBox.Show($"GameService: Getting saved games for PlayerId: {playerId}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                
-                var savedGames = await context.SavedGames
+                var allGames = await context.SavedGames
                     .Where(g => g.PlayerId == playerId)
-                    .OrderByDescending(g => g.SavedAt)
+                    .OrderBy(g => g.SavedAt)
                     .ToListAsync();
                 
-                System.Windows.MessageBox.Show($"GameService: Found {savedGames.Count} saved games for player {playerId}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                
-                // Log details of each saved game
-                foreach (var game in savedGames)
+                // Filter out games that are completely empty (no pieces played)
+                var gamesWithPieces = new List<SavedGame>();
+                foreach (var game in allGames)
                 {
-                    System.Windows.MessageBox.Show($"GameService: Saved game - Id: {game.Id}, GameId: {game.GameId}, Status: {game.GameStatus}, SavedAt: {game.SavedAt}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    if (!string.IsNullOrEmpty(game.BoardStateJson))
+                    {
+                        var boardState = ConvertStringToBoardState(game.BoardStateJson);
+                        if (HasPiecesOnBoard(boardState))
+                        {
+                            gamesWithPieces.Add(game);
+                        }
+                    }
                 }
                 
-                return savedGames;
+                return gamesWithPieces;
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"GameService: ERROR getting saved games: {ex.Message}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                System.Windows.MessageBox.Show($"GameService: Stack trace: {ex.StackTrace}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                throw;
+                throw new InvalidOperationException($"Error getting saved games: {ex.Message}", ex);
             }
-
         }
 
+        /// <summary>
+        /// Checks if a board has any pieces on it
+        /// </summary>
+        private bool HasPiecesOnBoard(int[,] boardState)
+        {
+            for (int row = 0; row < boardState.GetLength(0); row++)
+            {
+                for (int col = 0; col < boardState.GetLength(1); col++)
+                {
+                    if (boardState[row, col] != 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Gets a specific saved game by its ID
+        /// </summary>
         public async Task<SavedGame?> GetSavedGameById(int savedGameId)
         {
             using var scope = serviceProvider.CreateScope();
@@ -271,6 +275,9 @@ namespace Connect4Client.Services
                 .FirstOrDefaultAsync(g => g.Id == savedGameId);
         }
 
+        /// <summary>
+        /// Updates the game status for a specific game
+        /// </summary>
         public async Task UpdateGameStatus(int playerId, int gameId, string status)
         {
             try
@@ -285,57 +292,11 @@ namespace Connect4Client.Services
                 {
                     savedGame.GameStatus = status;
                     await context.SaveChangesAsync();
-                    System.Diagnostics.Debug.WriteLine($"GameService: Updated game status to {status}");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"GameService: No saved game found to update status");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"GameService: Error updating game status: {ex.Message}");
-                throw;
-            }
-        }
-
-        public async Task<bool> TestDatabaseConnection()
-        {
-            try
-            {
-                using var scope = serviceProvider.CreateScope();
-                var context = scope.ServiceProvider.GetRequiredService<GameContext>();
-                
-                // Try to access the database
-                var count = await context.SavedGames.CountAsync();
-                System.Diagnostics.Debug.WriteLine($"GameService: Database connection test successful. Found {count} saved games.");
-                
-                // Test saving a dummy record
-                var testGame = new SavedGame
-                {
-                    PlayerId = 999,
-                    GameId = 999,
-                    BoardStateJson = "0,0,0,0,0,0,0;0,0,0,0,0,0,0;0,0,0,0,0,0,0;0,0,0,0,0,0,0;0,0,0,0,0,0,0;0,0,0,0,0,0,0",
-                    IsPlayerTurn = true,
-                    SavedAt = DateTime.Now,
-                    GameStatus = "Test"
-                };
-                
-                context.SavedGames.Add(testGame);
-                await context.SaveChangesAsync();
-                
-                // Remove the test record
-                context.SavedGames.Remove(testGame);
-                await context.SaveChangesAsync();
-                
-                System.Diagnostics.Debug.WriteLine($"GameService: Database write test successful.");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"GameService: Database connection test failed: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"GameService: Stack trace: {ex.StackTrace}");
-                return false;
+                throw new InvalidOperationException($"Error updating game status: {ex.Message}", ex);
             }
         }
     }

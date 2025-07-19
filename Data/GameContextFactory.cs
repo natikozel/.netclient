@@ -8,7 +8,6 @@ namespace Connect4Client.Data
     {
         public GameContext CreateDbContext(string[] args)
         {
-            // Get the current directory and find the project root
             string currentDirectory = Directory.GetCurrentDirectory();
             string dbPath = Path.Combine(currentDirectory, "Connect4ClientDb.mdf");
             

@@ -14,12 +14,10 @@ namespace Connect4Client.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Ensure GameId is properly configured
             modelBuilder.Entity<SavedGame>()
                 .Property(e => e.GameId)
                 .IsRequired();
 
-            // Add unique constraint for PlayerId + GameId combination
             modelBuilder.Entity<SavedGame>()
                 .HasIndex(e => new { e.PlayerId, e.GameId })
                 .IsUnique();
@@ -37,5 +35,25 @@ namespace Connect4Client.Data
         public bool IsPlayerTurn { get; set; }
         public DateTime SavedAt { get; set; }
         public string GameStatus { get; set; } = "InProgress";
+        public string MoveHistoryJson { get; set; } = "";
+        
+        public int MovesCount
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(MoveHistoryJson))
+                    return 0;
+                
+                try
+                {
+                    var moveHistory = System.Text.Json.JsonSerializer.Deserialize<List<MoveRecord>>(MoveHistoryJson);
+                    return moveHistory?.Count ?? 0;
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+        }
     }
 } 
