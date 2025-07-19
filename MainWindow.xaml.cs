@@ -58,7 +58,7 @@ namespace Connect4Client
                     try
                     {
                         // First, query the database directly
-                        DatabaseQuery.QueryDatabase();
+                        // DatabaseQuery.QueryDatabase();
                         
                         // Test service provider
                         System.Diagnostics.Debug.WriteLine($"Service provider is null: {((App)App.Current).Services == null}");
