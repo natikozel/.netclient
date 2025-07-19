@@ -71,14 +71,15 @@ namespace Connect4Client
                 try
                 {
                     context.Database.EnsureDeleted();
+                    System.Diagnostics.Debug.WriteLine("Database deleted successfully");
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Ignore errors if database doesn't exist
+                    System.Diagnostics.Debug.WriteLine($"Error deleting database: {ex.Message}");
                 }
                 
                 context.Database.EnsureCreated();
-                
+                System.Diagnostics.Debug.WriteLine("Database created successfully");
                 System.Diagnostics.Debug.WriteLine("Database initialized successfully");
             }
             catch (Exception ex)
