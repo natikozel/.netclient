@@ -50,14 +50,9 @@ namespace Connect4Client
         {
             try
             {
-                // Use the application directory directly for the database file
-                string appDirectory = AppDomain.CurrentDomain.BaseDirectory;
-                string dbPath = Path.Combine(appDirectory, "Connect4ClientDb.mdf");
-                
                 var services = new ServiceCollection();
                 
-                // Use a simple, consistent database name
-                string connectionString = $"Server=(localdb)\\mssqllocaldb;AttachDbFilename={dbPath};Database=Connect4ClientDb;Trusted_Connection=True;MultipleActiveResultSets=true;Integrated Security=true";
+                string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=Connect4ClientDb;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False";
                 
                 services.AddDbContext<GameContext>(options =>
                     options.UseSqlServer(connectionString));
@@ -67,27 +62,16 @@ namespace Connect4Client
                 using var scope = serviceProvider.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<GameContext>();
                 
-                // Force recreate the database to ensure proper schema
-                try
-                {
-                    context.Database.EnsureDeleted();
-                    System.Diagnostics.Debug.WriteLine("Database deleted successfully");
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error deleting database: {ex.Message}");
-                }
-                
                 context.Database.EnsureCreated();
-                System.Diagnostics.Debug.WriteLine("Database created successfully");
-                System.Diagnostics.Debug.WriteLine("Database initialized successfully");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Service initialization error: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                MessageBox.Show($"Service initialization error: {ex.Message}", 
-                    "Service Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                var errorMessage = $"Service initialization error: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorMessage += $"\n\nInner Exception: {ex.InnerException.Message}";
+                }
+                MessageBox.Show(errorMessage, "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 throw;
             }
         }

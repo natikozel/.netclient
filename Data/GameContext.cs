@@ -14,13 +14,6 @@ namespace Connect4Client.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<SavedGame>()
-                .Property(e => e.BoardStateJson)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-                    v => JsonSerializer.Deserialize<int[,]>(v, (JsonSerializerOptions?)null) ?? new int[6, 7]
-                );
-
             // Ensure GameId is properly configured
             modelBuilder.Entity<SavedGame>()
                 .Property(e => e.GameId)
@@ -40,7 +33,7 @@ namespace Connect4Client.Data
         public int Id { get; set; }
         public int PlayerId { get; set; }
         public int GameId { get; set; }
-        public int[,] BoardStateJson { get; set; } = new int[6, 7];
+        public string BoardStateJson { get; set; } = "";
         public bool IsPlayerTurn { get; set; }
         public DateTime SavedAt { get; set; }
         public string GameStatus { get; set; } = "InProgress";

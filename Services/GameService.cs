@@ -37,6 +37,10 @@ namespace Connect4Client.Services
                 
                 System.Windows.MessageBox.Show($"GameService: Saving game state for PlayerId: {playerId}, GameId: {gameId}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 
+                // Convert board state to string
+                string boardStateString = ConvertBoardStateToString(boardState);
+                System.Windows.MessageBox.Show($"GameService: Board state converted to string: {boardStateString}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                
                 // Check if saved game for this game ID already exists
                 System.Windows.MessageBox.Show("GameService: Checking for existing game...", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 var existingGame = await context.SavedGames
@@ -48,7 +52,17 @@ namespace Connect4Client.Services
                 {
                     System.Windows.MessageBox.Show("GameService: Updating existing saved game", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                     // Update existing saved game
-                    existingGame.BoardStateJson = boardState;
+                    try
+                    {
+                        System.Windows.MessageBox.Show($"GameService: Setting board state string - dimensions: {boardState.GetLength(0)}x{boardState.GetLength(1)}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                        existingGame.BoardStateJson = boardStateString;
+                        System.Windows.MessageBox.Show("GameService: Board state string set successfully", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Windows.MessageBox.Show($"GameService: Error setting board state string: {ex.Message}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                        throw;
+                    }
                     existingGame.IsPlayerTurn = isPlayerTurn;
                     existingGame.SavedAt = DateTime.Now;
                     existingGame.GameStatus = "InProgress";
@@ -58,18 +72,27 @@ namespace Connect4Client.Services
                 {
                     System.Windows.MessageBox.Show("GameService: Creating new saved game", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                     // Create new saved game
-                    var savedGame = new SavedGame
+                    try
                     {
-                        PlayerId = playerId,
-                        GameId = gameId,
-                        BoardStateJson = boardState,
-                        IsPlayerTurn = isPlayerTurn,
-                        SavedAt = DateTime.Now,
-                        GameStatus = "InProgress"
-                    };
-                    
-                    context.SavedGames.Add(savedGame);
-                    System.Windows.MessageBox.Show($"GameService: Created new saved game object", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                        System.Windows.MessageBox.Show($"GameService: Creating saved game with board state string - dimensions: {boardState.GetLength(0)}x{boardState.GetLength(1)}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                        var savedGame = new SavedGame
+                        {
+                            PlayerId = playerId,
+                            GameId = gameId,
+                            BoardStateJson = boardStateString,
+                            IsPlayerTurn = isPlayerTurn,
+                            SavedAt = DateTime.Now,
+                            GameStatus = "InProgress"
+                        };
+                        
+                        context.SavedGames.Add(savedGame);
+                        System.Windows.MessageBox.Show($"GameService: Created new saved game object", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Windows.MessageBox.Show($"GameService: Error creating saved game: {ex.Message}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                        throw;
+                    }
                 }
                 
                 System.Windows.MessageBox.Show("GameService: About to save changes to database", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
@@ -79,9 +102,73 @@ namespace Connect4Client.Services
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"GameService: ERROR saving game state: {ex.Message}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                var errorMessage = $"GameService: ERROR saving game state: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorMessage += $"\n\nInner Exception: {ex.InnerException.Message}";
+                }
+                System.Windows.MessageBox.Show(errorMessage, "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 System.Windows.MessageBox.Show($"GameService: Stack trace: {ex.StackTrace}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 throw;
+            }
+        }
+
+        private string ConvertBoardStateToString(int[,] boardState)
+        {
+            try
+            {
+                var rows = new List<string>();
+                for (int i = 0; i < boardState.GetLength(0); i++)
+                {
+                    var row = new List<string>();
+                    for (int j = 0; j < boardState.GetLength(1); j++)
+                    {
+                        row.Add(boardState[i, j].ToString());
+                    }
+                    rows.Add(string.Join(",", row));
+                }
+                return string.Join(";", rows);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error converting board state to string: {ex.Message}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                return "";
+            }
+        }
+
+        private int[,] ConvertStringToBoardState(string boardStateString)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(boardStateString))
+                    return new int[6, 7];
+
+                var rows = boardStateString.Split(';');
+                if (rows.Length == 0)
+                    return new int[6, 7];
+
+                int rowCount = rows.Length;
+                int colCount = rows[0].Split(',').Length;
+                var result = new int[rowCount, colCount];
+
+                for (int i = 0; i < rowCount; i++)
+                {
+                    var cols = rows[i].Split(',');
+                    for (int j = 0; j < colCount && j < cols.Length; j++)
+                    {
+                        if (int.TryParse(cols[j], out int value))
+                        {
+                            result[i, j] = value;
+                        }
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error converting string to board state: {ex.Message}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                return new int[6, 7];
             }
         }
 
@@ -96,11 +183,14 @@ namespace Connect4Client.Services
             if (savedGame == null)
                 return null;
             
+            // Convert string back to 2D array
+            int[,] boardState = ConvertStringToBoardState(savedGame.BoardStateJson);
+            
             return new GameState
             {
                 Id = savedGame.Id,
                 PlayerId = savedGame.PlayerId,
-                BoardState = savedGame.BoardStateJson,
+                BoardState = boardState,
                 IsPlayerTurn = savedGame.IsPlayerTurn,
                 SavedAt = savedGame.SavedAt,
                 GameStatus = savedGame.GameStatus
@@ -170,6 +260,7 @@ namespace Connect4Client.Services
                 System.Windows.MessageBox.Show($"GameService: Stack trace: {ex.StackTrace}", "DEBUG", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 throw;
             }
+
         }
 
         public async Task<SavedGame?> GetSavedGameById(int savedGameId)
@@ -224,7 +315,7 @@ namespace Connect4Client.Services
                 {
                     PlayerId = 999,
                     GameId = 999,
-                    BoardStateJson = new int[6, 7],
+                    BoardStateJson = "0,0,0,0,0,0,0;0,0,0,0,0,0,0;0,0,0,0,0,0,0;0,0,0,0,0,0,0;0,0,0,0,0,0,0;0,0,0,0,0,0,0",
                     IsPlayerTurn = true,
                     SavedAt = DateTime.Now,
                     GameStatus = "Test"

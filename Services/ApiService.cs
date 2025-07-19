@@ -8,7 +8,7 @@ namespace Connect4Client.Services
     public class ApiService
     {
         private readonly HttpClient httpClient;
-        private readonly string baseUrl = "http://localhost:5000"; // Adjust based on your server URL
+        private readonly string baseUrl = "http://localhost:5000";
 
         public ApiService()
         {

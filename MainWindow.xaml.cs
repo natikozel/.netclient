@@ -273,11 +273,8 @@ namespace Connect4Client
         
         private async Task MakePlayerMove(int column)
         {
-            MessageBox.Show($"=== MAKING PLAYER MOVE - Column: {column} ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-            
             if (currentGame == null || currentPlayer == null) 
             {
-                MessageBox.Show($"ERROR: currentGame is null: {currentGame == null}, currentPlayer is null: {currentPlayer == null}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
                 if (currentPlayer == null)
                 {
                     MessageBox.Show("Please login first to make a move.", "Login Required", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -286,66 +283,52 @@ namespace Connect4Client
                 return;
             }
             
-            MessageBox.Show($"Move parameters - GameId: {currentGame.Id}, PlayerId: {currentPlayer.Id}, Column: {column}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-            
             // Prevent multiple simultaneous moves
             if (isProcessingMove)
             {
-                MessageBox.Show("WARNING: Move already in progress, ignoring click", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
             isProcessingMove = true;
             
             try
             {
-                MessageBox.Show("Calling apiService.MakeMove...", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 // Make move on server
                 var response = await apiService.MakeMove(currentGame.Id, column);
                 
                 if (!response.Success)
                 {
-                    MessageBox.Show($"ERROR: Server move failed - {response.Message}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
                     MessageBox.Show(response.Message, "Move Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
                 
                 if (response.Game == null)
                 {
-                    MessageBox.Show("ERROR: Server returned null game after move", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
-                
-                MessageBox.Show($"Server move successful - GameId: {response.Game.Id}, Status: {response.Game.Status}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 
                 // Update current game state
                 currentGame = response.Game;
                 
                 // Update board state from server (convert jagged array to 2D array)
                 boardState = GameDto.To2DArray(response.Game.Board);
-                MessageBox.Show($"Board state updated - pieces count: {CountPieces(boardState)}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 
                 // Add a short delay before updating the visual board to show the move
                 await Task.Delay(300);
                 
                 // Update visual board to match server state
-                MessageBox.Show("Updating visual board...", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 await UpdateVisualBoard();
                 
-                MessageBox.Show("=== SAVING GAME STATE AFTER MOVE ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 // Save game state locally
                 await SaveGameState();
                 
                 // Check game status
-                MessageBox.Show($"Game status: {currentGame.Status}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 if (currentGame.Status == "Won")
                 {
-                    MessageBox.Show("=== GAME WON - SAVING BEFORE HANDLING ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                     await SaveGameState(); // Save before handling win
                     await HandleGameWin(true);
                 }
                 else if (currentGame.Status == "Lost")
                 {
-                    MessageBox.Show("=== GAME LOST - SAVING BEFORE HANDLING ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                     // Show CPU thinking animation
                     await Task.Delay(800); // CPU "thinking" delay
                     
@@ -354,36 +337,28 @@ namespace Connect4Client
                 }
                 else if (currentGame.Status == "Draw")
                 {
-                    MessageBox.Show("=== GAME DRAW - SAVING BEFORE HANDLING ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                     await SaveGameState(); // Save before handling draw
                     await HandleGameDraw();
                 }
                 else
                 {
-                    MessageBox.Show("Game continues...", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                     // Game continues - show CPU thinking if there's a CPU move
                     if (response.CpuMove.HasValue)
                     {
-                        MessageBox.Show($"CPU move detected: {response.CpuMove.Value}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                         await Task.Delay(800); // CPU "thinking" delay
                     }
                     
                     UpdateGameStatus();
                 }
-                
-                MessageBox.Show("=== MOVE COMPLETE ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"ERROR in MakePlayerMove: {ex.Message}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
-                MessageBox.Show($"Stack trace: {ex.StackTrace}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
                 MessageBox.Show($"Error making move: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
                 // Always clear the processing flag
                 isProcessingMove = false;
-                MessageBox.Show("Processing flag cleared", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
         
@@ -643,23 +618,17 @@ namespace Connect4Client
         
         private async Task HandleGameWin(bool playerWon)
         {
-            MessageBox.Show($"=== HANDLING GAME WIN - PlayerWon: {playerWon} ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-            
             gameActive = false;
             colorChangeTimer.Stop();
             
-            MessageBox.Show($"Game state updated - gameActive: {gameActive}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-            
             if (playerWon)
             {
-                MessageBox.Show("Player won - updating UI and animating", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 GameStatusText.Text = "You Win!";
                 GameStatusText.Foreground = Brushes.Green;
                 await AnimateWinCelebration();
             }
             else
             {
-                MessageBox.Show("CPU won - updating UI", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 GameStatusText.Text = "CPU Wins!";
                 GameStatusText.Foreground = Brushes.Red;
             }
@@ -669,8 +638,6 @@ namespace Connect4Client
             // Update statistics
             if (currentPlayer != null)
             {
-                MessageBox.Show($"Updating player statistics - before: Won={currentPlayer.GamesWon}, Lost={currentPlayer.GamesLost}, Played={currentPlayer.GamesPlayed}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-                
                 if (playerWon)
                     currentPlayer.GamesWon++;
                 else
@@ -679,35 +646,19 @@ namespace Connect4Client
                 currentPlayer.GamesPlayed++;
                 UpdateStatistics();
                 
-                MessageBox.Show($"Updated statistics - after: Won={currentPlayer.GamesWon}, Lost={currentPlayer.GamesLost}, Played={currentPlayer.GamesPlayed}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-                
                 // Save to server
-                MessageBox.Show("Saving statistics to server...", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 await apiService.UpdatePlayerStatistics(currentPlayer);
-                MessageBox.Show("Statistics saved to server", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            else
-            {
-                MessageBox.Show("WARNING: currentPlayer is null - cannot update statistics", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             
             // Update game status in local database
             if (currentGame != null && currentPlayer != null)
             {
                 string finalStatus = playerWon ? "Won" : "Lost";
-                MessageBox.Show($"Updating game status in database to: {finalStatus}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 await gameService.UpdateGameStatus(currentPlayer.Id, currentGame.Id, finalStatus);
                 
-                MessageBox.Show("=== FINAL SAVE OF COMPLETE GAME STATE ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 // Final save of the complete game state
                 await SaveGameState();
             }
-            else
-            {
-                MessageBox.Show($"WARNING: Cannot update game status - currentGame is null: {currentGame == null}, currentPlayer is null: {currentPlayer == null}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-            
-            MessageBox.Show("=== GAME WIN HANDLING COMPLETE ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         
         private async Task HandleGameDraw()
@@ -880,36 +831,26 @@ namespace Connect4Client
         {
             try
             {
-                MessageBox.Show("=== STARTING NEW GAME ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-                
                 if (currentPlayer == null)
                 {
-                    MessageBox.Show("ERROR: currentPlayer is null - cannot start game", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
                     MessageBox.Show("Please login first to start a game.", "Login Required", MessageBoxButton.OK, MessageBoxImage.Warning);
                     ShowLoginDialog();
                     return;
                 }
 
-                MessageBox.Show($"Starting new game for PlayerId: {currentPlayer.Id}, PlayerName: {currentPlayer.FirstName}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-
                 // Start new game on server
-                MessageBox.Show("Calling apiService.StartGame...", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 var response = await apiService.StartGame(currentPlayer.PlayerId);
                 
                 if (!response.Success)
                 {
-                    MessageBox.Show($"ERROR: Server game start failed - {response.Message}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
                     MessageBox.Show(response.Message, "Game Start Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
                 
                 if (response.Game == null)
                 {
-                    MessageBox.Show("ERROR: Server returned null game", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
-                
-                MessageBox.Show($"Server game created successfully - GameId: {response.Game.Id}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 
                 // Set current game
                 currentGame = response.Game;
@@ -919,14 +860,10 @@ namespace Connect4Client
                 isPlayerTurn = true;
                 isProcessingMove = false; // Reset processing flag for new game
                 
-                MessageBox.Show($"Game state reset - gameActive: {gameActive}, isPlayerTurn: {isPlayerTurn}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-                
                 // Update board state from server (convert jagged array to 2D array)
                 boardState = GameDto.To2DArray(response.Game.Board);
-                MessageBox.Show($"Board state initialized - pieces count: {CountPieces(boardState)}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 
                 // Update visual board to match server state
-                MessageBox.Show("Updating visual board...", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 await UpdateVisualBoard();
                 
                 // Reset timers
@@ -937,30 +874,11 @@ namespace Connect4Client
                 UpdateGameStatus();
                 UpdatePlayerInfo();
 
-                MessageBox.Show("=== SAVING INITIAL GAME STATE ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 // Save initial game state
                 await SaveGameState();
-                
-                MessageBox.Show("=== TESTING MANUAL SAVE ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-                // Test save by creating a test game state
-                try
-                {
-                    MessageBox.Show($"Manual save test - PlayerId: {currentPlayer.Id}, GameId: {currentGame.Id}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-                    await gameService.SaveGameState(currentPlayer.Id, boardState, isPlayerTurn, currentGame.Id);
-                    MessageBox.Show("Manual test save completed successfully", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Manual test save failed: {ex.Message}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
-                    MessageBox.Show($"Stack trace: {ex.StackTrace}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-                
-                MessageBox.Show("=== NEW GAME COMPLETE ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"ERROR in StartNewGame: {ex.Message}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
-                MessageBox.Show($"Stack trace: {ex.StackTrace}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
                 MessageBox.Show($"Error starting new game: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -972,41 +890,18 @@ namespace Connect4Client
         
         private async Task SaveGameState()
         {
-            MessageBox.Show("=== SAVEGAMESTATE CALLED ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-            
             if (currentGame == null || currentPlayer == null) 
             {
-                MessageBox.Show($"ERROR: currentGame is null: {currentGame == null}, currentPlayer is null: {currentPlayer == null}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
-                MessageBox.Show($"currentGame: {currentGame}, currentPlayer: {currentPlayer}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             
             try
             {
-                MessageBox.Show($"Save parameters - PlayerId: {currentPlayer.Id}, GameId: {currentGame.Id}, IsPlayerTurn: {isPlayerTurn}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-                MessageBox.Show($"Board state has pieces: {CountPieces(boardState)}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-                
-                // Log board state for debugging
-                var boardStateStr = "Board state:\n";
-                for (int row = 0; row < ROWS; row++)
-                {
-                    var rowStr = "";
-                    for (int col = 0; col < COLUMNS; col++)
-                    {
-                        rowStr += boardState[row, col] + " ";
-                    }
-                    boardStateStr += $"Row {row}: {rowStr}\n";
-                }
-                MessageBox.Show(boardStateStr, "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-                
-                MessageBox.Show("Calling gameService.SaveGameState...", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 await gameService.SaveGameState(currentPlayer.Id, boardState, isPlayerTurn, currentGame.Id);
-                MessageBox.Show("Game state saved successfully", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"ERROR saving game state: {ex.Message}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
-                MessageBox.Show($"Stack trace: {ex.StackTrace}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error saving game state: {ex.Message}", "Save Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         
@@ -1014,38 +909,25 @@ namespace Connect4Client
         
         private async void LoadGameButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("=== LOAD GAME BUTTON CLICKED ===", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
-            
             try
             {
                 if (currentPlayer == null)
                 {
-                    MessageBox.Show("ERROR: currentPlayer is null - cannot load games", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
                     MessageBox.Show("Please connect to server first!", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
-                
-                MessageBox.Show($"Loading games for PlayerId: {currentPlayer.Id}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 
                 var restoreWindow = new GameRestoreWindow(currentPlayer.Id);
                 restoreWindow.Owner = this; // Set the owner to prevent crashes
                 restoreWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
                 
-                MessageBox.Show("Showing GameRestoreWindow...", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 if (restoreWindow.ShowDialog() == true && restoreWindow.SelectedGame != null)
                 {
-                    MessageBox.Show($"Game selected for restoration - GameId: {restoreWindow.SelectedGame.GameId}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                     await RestoreGame(restoreWindow.SelectedGame);
-                }
-                else
-                {
-                    MessageBox.Show("No game selected or dialog cancelled", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"ERROR in LoadGameButton_Click: {ex.Message}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
-                MessageBox.Show($"Stack trace: {ex.StackTrace}", "DEBUG", MessageBoxButton.OK, MessageBoxImage.Error);
                 MessageBox.Show($"Error loading games: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1060,8 +942,8 @@ namespace Connect4Client
                     return;
                 }
 
-                // Restore game state
-                boardState = savedGame.BoardStateJson;
+                // Convert string back to 2D array
+                boardState = ConvertStringToBoardState(savedGame.BoardStateJson);
                 isPlayerTurn = savedGame.IsPlayerTurn;
                 gameActive = true;
                 
@@ -1070,7 +952,7 @@ namespace Connect4Client
                 {
                     Id = savedGame.GameId,
                     Status = savedGame.GameStatus,
-                    Board = GameDto.From2DArray(savedGame.BoardStateJson), // Convert 2D array to jagged array
+                    Board = GameDto.From2DArray(boardState), // Convert 2D array to jagged array
                     CurrentPlayer = savedGame.IsPlayerTurn ? "Player" : "CPU"
                 };
                 
@@ -1088,6 +970,42 @@ namespace Connect4Client
                 gameActive = false;
                 isPlayerTurn = true;
                 UpdateGameStatus();
+            }
+        }
+
+        private static int[,] ConvertStringToBoardState(string boardStateString)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(boardStateString)) 
+                    return new int[6, 7];
+                
+                var rows = boardStateString.Split(';');
+                if (rows.Length == 0) 
+                    return new int[6, 7];
+                
+                int rowCount = rows.Length;
+                int colCount = rows[0].Split(',').Length;
+                var result = new int[rowCount, colCount];
+                
+                for (int i = 0; i < rowCount; i++)
+                {
+                    var cols = rows[i].Split(',');
+                    for (int j = 0; j < colCount && j < cols.Length; j++)
+                    {
+                        if (int.TryParse(cols[j], out int value))
+                        {
+                            result[i, j] = value;
+                        }
+                    }
+                }
+                
+                return result;
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error converting string to board state: {ex.Message}", "Conversion Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                return new int[6, 7];
             }
         }
         
