@@ -51,7 +51,9 @@ namespace Connect4Client
             {
                 var services = new ServiceCollection();
                 
-                string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=Connect4ClientDb;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False";
+                string currentDirectory = Directory.GetCurrentDirectory();
+                string dbPath = Path.Combine(currentDirectory, "Connect4ClientDb.mdf");
+                string connectionString = $"Data Source=(localdb)\\MSSQLLocalDB;AttachDbFilename={dbPath};Database=Connect4ClientDb;Trusted_Connection=True;MultipleActiveResultSets=true";
                 
                 services.AddDbContext<GameContext>(options =>
                     options.UseSqlServer(connectionString));
