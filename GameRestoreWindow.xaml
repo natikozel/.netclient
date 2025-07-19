@@ -53,63 +53,165 @@
                 <TextBlock Grid.Row="0" Text="💾 Saved Games" Style="{StaticResource SubHeadingStyle}" Margin="0,0,0,15"/>
                 
                 <DataGrid Grid.Row="1" x:Name="SavedGamesGrid" 
-                          Style="{StaticResource ModernDataGridStyle}"
                           AutoGenerateColumns="False" 
                           IsReadOnly="True"
                           SelectionMode="Single"
-                          GridLinesVisibility="Horizontal"
+                          GridLinesVisibility="None"
                           HeadersVisibility="Column"
-                          AlternatingRowBackground="#F8FAFC"
-                          RowHeight="40">
+                          RowHeight="50"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          CanUserReorderColumns="False"
+                          CanUserResizeColumns="False"
+                          CanUserResizeRows="False"
+                          CanUserSortColumns="False">
                     <DataGrid.Resources>
+                        <!-- Modern Column Header Style -->
                         <Style TargetType="DataGridColumnHeader">
-                            <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+                            <Setter Property="Background" Value="#4F46E5"/>
                             <Setter Property="Foreground" Value="White"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
-                            <Setter Property="FontSize" Value="14"/>
-                            <Setter Property="Padding" Value="15,10"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="Padding" Value="20,15"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="0"/>
                             <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="DataGridColumnHeader">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
                         </Style>
+                        
+                        <!-- Modern Cell Style -->
                         <Style TargetType="DataGridCell">
                             <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="Padding" Value="15,8"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Padding" Value="20,12"/>
                             <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="DataGridCell">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Left"
+                                                            VerticalAlignment="{TemplateBinding VerticalAlignment}"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
                         </Style>
+                        
+                        <!-- Modern Row Style -->
                         <Style TargetType="DataGridRow">
-                            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                            <Setter Property="Background" Value="White"/>
+                            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                            <Setter Property="Margin" Value="0,0,0,0"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="DataGridRow">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                Margin="{TemplateBinding Margin}">
+                                            <DataGridCellsPresenter/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsSelected" Value="True">
                                     <Setter Property="Background" Value="#EEF2FF"/>
-                                    <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
-                                    <Setter Property="BorderThickness" Value="1"/>
+                                    <Setter Property="BorderBrush" Value="#4F46E5"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,2"/>
                                 </Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#F0F9FF"/>
+                                    <Setter Property="Background" Value="#F8FAFC"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
+                        
+                        <!-- Alternating Row Background -->
+                        <Style TargetType="DataGrid" x:Key="AlternatingRowStyle">
+                            <Setter Property="AlternatingRowBackground" Value="#F9FAFB"/>
+                        </Style>
                     </DataGrid.Resources>
+                    
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="🎮 Game ID" Binding="{Binding GameId}" Width="100"/>
-                        <DataGridTextColumn Header="📅 Saved Date" Binding="{Binding SavedAt, StringFormat='{}{0:MM/dd/yyyy HH:mm}'}" Width="180"/>
-                        <DataGridTextColumn Header="🏆 Status" Binding="{Binding GameStatus}" Width="120"/>
-                        <DataGridTextColumn Header="🎯 Your Turn" Binding="{Binding IsPlayerTurn}" Width="120"/>
-                        <DataGridTextColumn Header="⏱️ Duration" Binding="{Binding MovesCount}" Width="100"/>
+                        <DataGridTextColumn Header="🎮 Game ID" Binding="{Binding GameId}" Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="Foreground" Value="#1F2937"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="📅 Saved Date" Binding="{Binding SavedAt, StringFormat='{}{0:MM/dd/yyyy HH:mm}'}" Width="200">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#6B7280"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="🏆 Status" Binding="{Binding GameStatus}" Width="140">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="Foreground" Value="#059669"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="🎯 Your Turn" Binding="{Binding IsPlayerTurn}" Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#6B7280"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="⏱️ Moves" Binding="{Binding MovesCount}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="Foreground" Value="#1F2937"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
                     </DataGrid.Columns>
                 </DataGrid>
                 
                 <Border Grid.Row="1" x:Name="NoGamesPanel" 
                         Background="#F8FAFC" 
-                        CornerRadius="10" 
-                        Padding="40"
+                        CornerRadius="12" 
+                        Padding="60"
+                        BorderBrush="#E5E7EB"
+                        BorderThickness="2"
                         Visibility="Collapsed">
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="📂" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,15"/>
-                        <TextBlock Text="No saved games found" FontSize="18" FontWeight="SemiBold" 
-                                   Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center"/>
+                        <TextBlock Text="📂" FontSize="64" HorizontalAlignment="Center" Margin="0,0,0,20" Opacity="0.6"/>
+                        <TextBlock Text="No saved games found" FontSize="20" FontWeight="SemiBold" 
+                                   Foreground="#374151" HorizontalAlignment="Center" Margin="0,0,0,8"/>
                         <TextBlock Text="Play some games first and save them to see them here" FontSize="14" 
-                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                                   Foreground="#6B7280" HorizontalAlignment="Center" TextAlignment="Center" 
+                                   MaxWidth="300" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
             </Grid>

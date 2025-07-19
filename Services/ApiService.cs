@@ -8,7 +8,7 @@ namespace Connect4Client.Services
     public class ApiService
     {
         private readonly HttpClient httpClient;
-        private readonly string baseUrl = "http://localhost:5000"; // Adjust based on your server URL
+        private readonly string baseUrl = "http://localhost:5000";
 
         public ApiService()
         {
@@ -32,7 +32,6 @@ namespace Connect4Client.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"API Error: {ex.Message}");
                 return null;
             }
         }
@@ -49,7 +48,6 @@ namespace Connect4Client.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"API Error: {ex.Message}");
                 return false;
             }
         }
@@ -70,7 +68,6 @@ namespace Connect4Client.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"API Error: {ex.Message}");
                 return new List<Player>();
             }
         }
@@ -94,7 +91,6 @@ namespace Connect4Client.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"API Error: {ex.Message}");
                 return new StartGameResponse
                 {
                     Success = false,
@@ -122,7 +118,6 @@ namespace Connect4Client.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"API Error: {ex.Message}");
                 return new MakeMoveResponse
                 {
                     Success = false,
@@ -147,7 +142,6 @@ namespace Connect4Client.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"API Error: {ex.Message}");
                 return null;
             }
         }

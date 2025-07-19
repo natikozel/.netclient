@@ -11,60 +11,133 @@ namespace Connect4Client.Services
 
         public GameService()
         {
-            // Get service provider from Application
             serviceProvider = ((App)App.Current).Services ?? throw new InvalidOperationException("Service provider not initialized");
         }
 
-        public async Task SaveGameState(int playerId, int[,] boardState, bool isPlayerTurn, int gameId)
+        /// <summary>
+        /// Saves the current game state to the database (only for finished games)
+        /// </summary>
+        public async Task SaveGameState(int playerId, int[,] boardState, bool isPlayerTurn, int gameId, string gameStatus, List<MoveRecord>? turnHistory = null)
         {
             try
             {
+                if (serviceProvider == null)
+                {
+                    throw new InvalidOperationException("Service provider is null");
+                }
+                
                 using var scope = serviceProvider.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<GameContext>();
                 
-                System.Diagnostics.Debug.WriteLine($"GameService: Saving game state for PlayerId: {playerId}, GameId: {gameId}");
+                string boardStateString = ConvertBoardStateToString(boardState);
+                string turnHistoryString = turnHistory != null ? System.Text.Json.JsonSerializer.Serialize(turnHistory) : "";
                 
-                // Check if saved game for this game ID already exists
                 var existingGame = await context.SavedGames
                     .FirstOrDefaultAsync(g => g.PlayerId == playerId && g.GameId == gameId);
                 
                 if (existingGame != null)
                 {
-                    // Update existing saved game
-                    existingGame.BoardStateJson = boardState;
+                    existingGame.BoardStateJson = boardStateString;
                     existingGame.IsPlayerTurn = isPlayerTurn;
                     existingGame.SavedAt = DateTime.Now;
-                    existingGame.GameStatus = "InProgress";
-                    System.Diagnostics.Debug.WriteLine($"GameService: Updated existing saved game");
+                    existingGame.GameStatus = gameStatus;
+                    existingGame.MoveHistoryJson = turnHistoryString;
                 }
                 else
                 {
-                    // Create new saved game
                     var savedGame = new SavedGame
                     {
                         PlayerId = playerId,
                         GameId = gameId,
-                        BoardStateJson = boardState,
+                        BoardStateJson = boardStateString,
                         IsPlayerTurn = isPlayerTurn,
                         SavedAt = DateTime.Now,
-                        GameStatus = "InProgress"
+                        GameStatus = gameStatus,
+                        MoveHistoryJson = turnHistoryString
                     };
                     
                     context.SavedGames.Add(savedGame);
-                    System.Diagnostics.Debug.WriteLine($"GameService: Created new saved game");
                 }
                 
                 await context.SaveChangesAsync();
-                System.Diagnostics.Debug.WriteLine($"GameService: Game state saved successfully");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"GameService: Error saving game state: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"GameService: Stack trace: {ex.StackTrace}");
-                throw;
+                var errorMessage = $"Error saving game state: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorMessage += $"\n\nInner Exception: {ex.InnerException.Message}";
+                }
+                throw new InvalidOperationException(errorMessage, ex);
             }
         }
 
+        /// <summary>
+        /// Converts a 2D board state array to a string format for database storage
+        /// </summary>
+        private string ConvertBoardStateToString(int[,] boardState)
+        {
+            try
+            {
+                var rows = new List<string>();
+                for (int i = 0; i < boardState.GetLength(0); i++)
+                {
+                    var row = new List<string>();
+                    for (int j = 0; j < boardState.GetLength(1); j++)
+                    {
+                        row.Add(boardState[i, j].ToString());
+                    }
+                    rows.Add(string.Join(",", row));
+                }
+                return string.Join(";", rows);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error converting board state to string: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Converts a string format board state back to a 2D array
+        /// </summary>
+        private int[,] ConvertStringToBoardState(string boardStateString)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(boardStateString))
+                    return new int[6, 7];
+
+                var rows = boardStateString.Split(';');
+                if (rows.Length == 0)
+                    return new int[6, 7];
+
+                int rowCount = rows.Length;
+                int colCount = rows[0].Split(',').Length;
+                var result = new int[rowCount, colCount];
+
+                for (int i = 0; i < rowCount; i++)
+                {
+                    var cols = rows[i].Split(',');
+                    for (int j = 0; j < colCount && j < cols.Length; j++)
+                    {
+                        if (int.TryParse(cols[j], out int value))
+                        {
+                            result[i, j] = value;
+                        }
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error converting string to board state: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Loads the most recent game state for a player
+        /// </summary>
         public async Task<GameState?> LoadGameState(int playerId)
         {
             using var scope = serviceProvider.CreateScope();
@@ -76,17 +149,36 @@ namespace Connect4Client.Services
             if (savedGame == null)
                 return null;
             
+            int[,] boardState = ConvertStringToBoardState(savedGame.BoardStateJson);
+            List<MoveRecord>? turnHistory = null;
+            
+            if (!string.IsNullOrEmpty(savedGame.MoveHistoryJson))
+            {
+                try
+                {
+                    turnHistory = System.Text.Json.JsonSerializer.Deserialize<List<MoveRecord>>(savedGame.MoveHistoryJson);
+                }
+                catch
+                {
+                    // If deserialization fails, turnHistory remains null
+                }
+            }
+            
             return new GameState
             {
                 Id = savedGame.Id,
                 PlayerId = savedGame.PlayerId,
-                BoardState = savedGame.BoardStateJson,
+                BoardState = boardState,
                 IsPlayerTurn = savedGame.IsPlayerTurn,
                 SavedAt = savedGame.SavedAt,
-                GameStatus = savedGame.GameStatus
+                GameStatus = savedGame.GameStatus,
+                MoveHistory = turnHistory
             };
         }
 
+        /// <summary>
+        /// Deletes the saved game for a player
+        /// </summary>
         public async Task DeleteSavedGame(int playerId)
         {
             using var scope = serviceProvider.CreateScope();
@@ -102,6 +194,9 @@ namespace Connect4Client.Services
             }
         }
 
+        /// <summary>
+        /// Gets all saved games from the database
+        /// </summary>
         public async Task<List<SavedGame>> GetAllSavedGames()
         {
             using var scope = serviceProvider.CreateScope();
@@ -109,31 +204,69 @@ namespace Connect4Client.Services
             return await context.SavedGames.ToListAsync();
         }
 
+        /// <summary>
+        /// Gets all saved games for a specific player in chronological order
+        /// </summary>
         public async Task<List<SavedGame>> GetSavedGamesForPlayer(int playerId)
         {
             try
             {
+                if (serviceProvider == null)
+                {
+                    throw new InvalidOperationException("Service provider is null");
+                }
+                
                 using var scope = serviceProvider.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<GameContext>();
                 
-                System.Diagnostics.Debug.WriteLine($"GameService: Getting saved games for PlayerId: {playerId}");
-                
-                var savedGames = await context.SavedGames
+                var allGames = await context.SavedGames
                     .Where(g => g.PlayerId == playerId)
-                    .OrderByDescending(g => g.SavedAt)
+                    .OrderBy(g => g.SavedAt)
                     .ToListAsync();
                 
-                System.Diagnostics.Debug.WriteLine($"GameService: Found {savedGames.Count} saved games for player {playerId}");
-                return savedGames;
+                // Filter out games that are completely empty (no pieces played)
+                var gamesWithPieces = new List<SavedGame>();
+                foreach (var game in allGames)
+                {
+                    if (!string.IsNullOrEmpty(game.BoardStateJson))
+                    {
+                        var boardState = ConvertStringToBoardState(game.BoardStateJson);
+                        if (HasPiecesOnBoard(boardState))
+                        {
+                            gamesWithPieces.Add(game);
+                        }
+                    }
+                }
+                
+                return gamesWithPieces;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"GameService: Error getting saved games: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"GameService: Stack trace: {ex.StackTrace}");
-                throw;
+                throw new InvalidOperationException($"Error getting saved games: {ex.Message}", ex);
             }
         }
 
+        /// <summary>
+        /// Checks if a board has any pieces on it
+        /// </summary>
+        private bool HasPiecesOnBoard(int[,] boardState)
+        {
+            for (int row = 0; row < boardState.GetLength(0); row++)
+            {
+                for (int col = 0; col < boardState.GetLength(1); col++)
+                {
+                    if (boardState[row, col] != 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Gets a specific saved game by its ID
+        /// </summary>
         public async Task<SavedGame?> GetSavedGameById(int savedGameId)
         {
             using var scope = serviceProvider.CreateScope();
@@ -142,6 +275,9 @@ namespace Connect4Client.Services
                 .FirstOrDefaultAsync(g => g.Id == savedGameId);
         }
 
+        /// <summary>
+        /// Updates the game status for a specific game
+        /// </summary>
         public async Task UpdateGameStatus(int playerId, int gameId, string status)
         {
             try
@@ -156,57 +292,11 @@ namespace Connect4Client.Services
                 {
                     savedGame.GameStatus = status;
                     await context.SaveChangesAsync();
-                    System.Diagnostics.Debug.WriteLine($"GameService: Updated game status to {status}");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"GameService: No saved game found to update status");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"GameService: Error updating game status: {ex.Message}");
-                throw;
-            }
-        }
-
-        public async Task<bool> TestDatabaseConnection()
-        {
-            try
-            {
-                using var scope = serviceProvider.CreateScope();
-                var context = scope.ServiceProvider.GetRequiredService<GameContext>();
-                
-                // Try to access the database
-                var count = await context.SavedGames.CountAsync();
-                System.Diagnostics.Debug.WriteLine($"GameService: Database connection test successful. Found {count} saved games.");
-                
-                // Test saving a dummy record
-                var testGame = new SavedGame
-                {
-                    PlayerId = 999,
-                    GameId = 999,
-                    BoardStateJson = new int[6, 7],
-                    IsPlayerTurn = true,
-                    SavedAt = DateTime.Now,
-                    GameStatus = "Test"
-                };
-                
-                context.SavedGames.Add(testGame);
-                await context.SaveChangesAsync();
-                
-                // Remove the test record
-                context.SavedGames.Remove(testGame);
-                await context.SaveChangesAsync();
-                
-                System.Diagnostics.Debug.WriteLine($"GameService: Database write test successful.");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"GameService: Database connection test failed: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"GameService: Stack trace: {ex.StackTrace}");
-                return false;
+                throw new InvalidOperationException($"Error updating game status: {ex.Message}", ex);
             }
         }
     }

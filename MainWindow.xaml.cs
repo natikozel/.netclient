@@ -24,6 +24,10 @@ namespace Connect4Client
         private Player? currentPlayer;
         private GameDto? currentGame;
         
+        private List<MoveRecord> turnHistory = new List<MoveRecord>();
+        
+        private bool isLoadingGame = false;
+        
         private DispatcherTimer animationTimer = null!;
         private DispatcherTimer cpuMoveTimer = null!;
         private DispatcherTimer colorChangeTimer = null!;
@@ -43,7 +47,6 @@ namespace Connect4Client
                 gameService = new GameService();
                 apiService = new ApiService();
                 
-                // Set responsive window size based on screen
                 SetResponsiveWindowSize();
                 
                 InitializeTimers();
@@ -52,39 +55,7 @@ namespace Connect4Client
                 UpdatePlayerInfo();
                 UpdateGameStatus();
                 
-                // Test database connection and save functionality
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        // First, query the database directly
-                        // DatabaseQuery.QueryDatabase();
-                        
-                        // Test service provider
-                        System.Diagnostics.Debug.WriteLine($"Service provider is null: {((App)App.Current).Services == null}");
-                        
-                        var dbTest = await gameService.TestDatabaseConnection();
-                        System.Diagnostics.Debug.WriteLine($"Database connection test result: {dbTest}");
-                        
-                        // Test saving a game
-                        if (dbTest)
-                        {
-                            var testBoard = new int[6, 7];
-                            testBoard[0, 0] = 1; // Add a test piece
-                            await gameService.SaveGameState(999, testBoard, true, 999);
-                            System.Diagnostics.Debug.WriteLine("Test game save successful");
-                            
-                            // Test loading games
-                            var savedGames = await gameService.GetSavedGamesForPlayer(999);
-                            System.Diagnostics.Debug.WriteLine($"Found {savedGames.Count} test games");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Database test failed: {ex.Message}");
-                        System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                    }
-                });
+
             }
             catch (Exception ex)
             {
@@ -169,30 +140,25 @@ namespace Connect4Client
         
         private void InitializeGameBoard()
         {
-            // Initialize the Rectangle matrix for the game board
             gameBoard = new Rectangle[ROWS, COLUMNS];
             gamePieces = new Ellipse[ROWS, COLUMNS];
             boardState = new int[ROWS, COLUMNS];
             
-            // Create Rectangle controls for each cell
             for (int row = 0; row < ROWS; row++)
             {
                 for (int col = 0; col < COLUMNS; col++)
                 {
-                    // Create the background rectangle (cell)
                     Rectangle cell = new Rectangle
                     {
                         Style = (Style)FindResource("GameCellStyle"),
                         Name = $"Cell_{row}_{col}"
                     };
                     
-                    // Position the rectangle in the grid
                     Grid.SetRow(cell, row);
                     Grid.SetColumn(cell, col);
                     GameBoardGrid.Children.Add(cell);
                     gameBoard[row, col] = cell;
                     
-                    // Create the game piece (ellipse) for this cell
                     Ellipse piece = new Ellipse
                     {
                         Style = (Style)FindResource("PlayerPieceStyle"),
@@ -205,21 +171,19 @@ namespace Connect4Client
                     GameBoardGrid.Children.Add(piece);
                     gamePieces[row, col] = piece;
                     
-                    // Initialize board state
-                    boardState[row, col] = 0; // 0 = empty, 1 = player, 2 = CPU
+                    boardState[row, col] = 0;
                 }
             }
         }
         
         private void InitializeColumnButtons()
         {
-            // Create column buttons for dropping pieces
             for (int col = 0; col < COLUMNS; col++)
             {
                 Button columnButton = new Button
                 {
                     Content = $"▼",
-                    FontSize = 16,  // Slightly smaller for better responsiveness
+                    FontSize = 16,
                     FontWeight = FontWeights.Bold,
                     Style = (Style)FindResource("GameButtonStyle"),
                     Tag = col
@@ -242,7 +206,6 @@ namespace Connect4Client
                 }
                 else if (isProcessingMove)
                 {
-                    // Silently ignore clicks while processing - no need to show message
                     return;
                 }
                 return;
@@ -266,13 +229,14 @@ namespace Connect4Client
                 return;
             }
             
-            // Prevent multiple simultaneous moves
-            if (isProcessingMove) return;
+            if (isProcessingMove)
+            {
+                return;
+            }
             isProcessingMove = true;
             
             try
             {
-                // Make move on server
                 var response = await apiService.MakeMove(currentGame.Id, column);
                 
                 if (!response.Success)
@@ -281,45 +245,48 @@ namespace Connect4Client
                     return;
                 }
                 
-                if (response.Game == null) return;
+                if (response.Game == null)
+                {
+                    return;
+                }
                 
-                // Update current game state
                 currentGame = response.Game;
                 
-                // Update board state from server (convert jagged array to 2D array)
                 boardState = GameDto.To2DArray(response.Game.Board);
                 
-                // Add a short delay before updating the visual board to show the move
+                turnHistory.Add(new MoveRecord(column, true));
+                
+                if (response.CpuMove.HasValue)
+                {
+                    turnHistory.Add(new MoveRecord(response.CpuMove.Value, false));
+                }
+                
                 await Task.Delay(300);
                 
-                // Update visual board to match server state
                 await UpdateVisualBoard();
                 
-                // Save game state locally
-                await SaveGameState();
-                
-                // Check game status
                 if (currentGame.Status == "Won")
                 {
+                    await SaveGameState();
                     await HandleGameWin(true);
                 }
                 else if (currentGame.Status == "Lost")
                 {
-                    // Show CPU thinking animation
-                    await Task.Delay(800); // CPU "thinking" delay
+                    await Task.Delay(400);
                     
+                    await SaveGameState();
                     await HandleGameWin(false);
                 }
                 else if (currentGame.Status == "Draw")
                 {
+                    await SaveGameState();
                     await HandleGameDraw();
                 }
                 else
                 {
-                    // Game continues - show CPU thinking if there's a CPU move
                     if (response.CpuMove.HasValue)
                     {
-                        await Task.Delay(800); // CPU "thinking" delay
+                        await Task.Delay(400);
                     }
                     
                     UpdateGameStatus();
@@ -331,14 +298,12 @@ namespace Connect4Client
             }
             finally
             {
-                // Always clear the processing flag
                 isProcessingMove = false;
             }
         }
         
         private async Task UpdateVisualBoard()
         {
-            // Store previous board state to detect new pieces
             var previousState = new int[ROWS, COLUMNS];
             for (int row = 0; row < ROWS; row++)
             {
@@ -350,7 +315,6 @@ namespace Connect4Client
                 }
             }
             
-            // Find new pieces and separate player vs CPU moves
             var newPlayerPieces = new List<(int row, int col)>();
             var newCpuPieces = new List<(int row, int col)>();
             
@@ -364,29 +328,27 @@ namespace Connect4Client
                     
                     if (newValue != oldValue && newValue != 0)
                     {
-                        // This is a new piece - categorize by player type
-                        if (newValue == 1) // Player piece
+                        if (newValue == 1)
                         {
                             newPlayerPieces.Add((row, col));
                         }
-                        else if (newValue == 2) // CPU piece
+                        else if (newValue == 2)
                         {
                             newCpuPieces.Add((row, col));
                         }
                     }
                     
-                    // Update the piece immediately for empty or existing pieces
                     switch (newValue)
                     {
-                        case 0: // Empty
+                        case 0:
                             piece.Fill = Brushes.Transparent;
                             piece.Visibility = Visibility.Hidden;
                             break;
-                        case 1: // Player
-                            if (oldValue == 0) // Only if it's actually new
+                        case 1:
+                            if (oldValue == 0)
                             {
                                 piece.Fill = Brushes.Red;
-                                piece.Visibility = Visibility.Hidden; // Will be shown by animation
+                                piece.Visibility = Visibility.Hidden;
                             }
                             else
                             {
@@ -394,11 +356,11 @@ namespace Connect4Client
                                 piece.Visibility = Visibility.Visible;
                             }
                             break;
-                        case 2: // CPU
-                            if (oldValue == 0) // Only if it's actually new
+                        case 2:
+                            if (oldValue == 0)
                             {
                                 piece.Fill = Brushes.Blue;
-                                piece.Visibility = Visibility.Hidden; // Will be shown by animation
+                                piece.Visibility = Visibility.Hidden;
                             }
                             else
                             {
@@ -410,14 +372,11 @@ namespace Connect4Client
                 }
             }
             
-            // ALWAYS animate player pieces first, then CPU pieces
             foreach (var (row, col) in newPlayerPieces)
             {
-                await AnimateSimpleFallingPiece(row, col, true); // Player move
+                await AnimateSimpleFallingPiece(row, col, true);
                 await Task.Delay(100);
             }
-            
-            // Then animate CPU pieces (if any)
             foreach (var (row, col) in newCpuPieces)
             {
                 await AnimateSimpleFallingPiece(row, col, false); // CPU move
@@ -425,12 +384,58 @@ namespace Connect4Client
             }
         }
         
+        /// <summary>
+        /// Replays turns in chronological order using turn history
+        /// </summary>
+        private async Task ReplayTurnsFromHistory(List<MoveRecord> turnHistory)
+        {
+            if (turnHistory == null || turnHistory.Count == 0)
+                return;
+            
+            // Clear the board completely
+            for (int row = 0; row < ROWS; row++)
+            {
+                for (int col = 0; col < COLUMNS; col++)
+                {
+                    gamePieces[row, col].Fill = Brushes.Transparent;
+                    gamePieces[row, col].Visibility = Visibility.Hidden;
+                    boardState[row, col] = 0;
+                }
+            }
+            
+            for (int i = 0; i < turnHistory.Count; i++)
+            {
+                var move = turnHistory[i];
+                
+                int targetRow = -1;
+                for (int row = ROWS - 1; row >= 0; row--)
+                {
+                    if (boardState[row, move.Column] == 0)
+                    {
+                        targetRow = row;
+                        break;
+                    }
+                }
+                
+                if (targetRow != -1)
+                {
+                    int playerValue = move.IsPlayerMove ? 1 : 2;
+                    boardState[targetRow, move.Column] = playerValue;
+                    
+                    gamePieces[targetRow, move.Column].Fill = move.IsPlayerMove ? Brushes.Red : Brushes.Blue;
+                    gamePieces[targetRow, move.Column].Visibility = Visibility.Hidden;
+                    
+                    await AnimateSimpleFallingPiece(targetRow, move.Column, move.IsPlayerMove);
+                    await Task.Delay(100);
+                }
+            }
+        }
+        
         private async Task AnimateSimpleFallingPiece(int targetRow, int targetCol, bool isPlayerMove)
         {
             var piece = gamePieces[targetRow, targetCol];
-            var startRow = 0; // Start from top
+            var startRow = 0;
             
-            // Create a temporary animated piece
             var animatedPiece = new Ellipse
             {
                 Width = piece.ActualWidth > 0 ? piece.ActualWidth : 40,
@@ -440,23 +445,19 @@ namespace Connect4Client
                 StrokeThickness = 2
             };
             
-            // Add to game board grid
             Grid.SetRow(animatedPiece, startRow);
             Grid.SetColumn(animatedPiece, targetCol);
             GameBoardGrid.Children.Add(animatedPiece);
             
-            // Animate falling down
             for (int currentRow = startRow; currentRow <= targetRow; currentRow++)
             {
                 Grid.SetRow(animatedPiece, currentRow);
-                await Task.Delay(80); // Falling speed
+                await Task.Delay(80);
             }
             
-            // Remove animated piece and show final piece
             GameBoardGrid.Children.Remove(animatedPiece);
             piece.Visibility = Visibility.Visible;
             
-            // Add a subtle glow effect
             await AnimateSimpleGlow(piece);
         }
         
@@ -464,7 +465,6 @@ namespace Connect4Client
         {
             var originalOpacity = piece.Opacity;
             
-            // Quick glow effect
             piece.Opacity = 0.6;
             await Task.Delay(100);
             piece.Opacity = 1.0;
@@ -472,15 +472,8 @@ namespace Connect4Client
             piece.Opacity = originalOpacity;
         }
         
-        // FindLowestEmptyRow removed - server handles piece placement logic
-        
         private async Task AnimateDropPiece(int targetRow, int targetColumn, bool isPlayerMove)
         {
-            // Show animation status
-            
-
-
-            // Create the dropping piece
             droppingPiece = new Ellipse
             {
                 Width = 40,
@@ -490,37 +483,26 @@ namespace Connect4Client
                 StrokeThickness = 2
             };
             
-            // Position the piece at the top of the column
             Canvas.SetLeft(droppingPiece, targetColumn * 60 + 10);
             Canvas.SetTop(droppingPiece, -50);
             
-            // Set animation parameters
             animationColumn = targetColumn;
             animationRow = targetRow;
             
-            // Start the animation
             animationTimer.Start();
             
-            // Wait for animation to complete
             await Task.Delay(1000);
             
-            // Place the final piece
             gamePieces[targetRow, targetColumn].Fill = isPlayerMove ? Brushes.Red : Brushes.Yellow;
             gamePieces[targetRow, targetColumn].Visibility = Visibility.Visible;
             
-            // Add glowing effect
             await AnimateGlowEffect(targetRow, targetColumn);
-            
-            // Hide animation status
-            
-
         }
         
         private void AnimationTimer_Tick(object? sender, EventArgs e)
         {
             if (droppingPiece == null) return;
             
-            // Move the piece down
             double currentTop = Canvas.GetTop(droppingPiece);
             double targetTop = animationRow * 60 + 10;
             
@@ -528,7 +510,6 @@ namespace Connect4Client
             {
                 Canvas.SetTop(droppingPiece, currentTop + animationSpeed);
                 
-                // Add bounce effect when close to target
                 if (currentTop + animationSpeed >= targetTop - 20)
                 {
                     animationSpeed = Math.Max(2.0, animationSpeed * 0.8);
@@ -536,10 +517,9 @@ namespace Connect4Client
             }
             else
             {
-                // Animation complete
                 animationTimer.Stop();
                 droppingPiece = null;
-                animationSpeed = 8.0; // Reset speed
+                animationSpeed = 8.0;
             }
         }
         
@@ -547,12 +527,10 @@ namespace Connect4Client
         {
             var piece = gamePieces[row, column];
             
-            // Create glow animation
             var scaleTransform = new ScaleTransform(1.0, 1.0);
             piece.RenderTransform = scaleTransform;
             piece.RenderTransformOrigin = new Point(0.5, 0.5);
             
-            // Scale up and down animation
             var scaleAnimation = new DoubleAnimation
             {
                 From = 1.0,
@@ -569,23 +547,17 @@ namespace Connect4Client
         
         private void CpuMoveTimer_Tick(object? sender, EventArgs e)
         {
-            // CPU moves are now handled by the server
-            // This timer is no longer needed but kept for compatibility
             cpuMoveTimer.Stop();
             colorChangeTimer.Stop();
-
         }
         
         private void AnimateThinking()
         {
-            // CPU thinking animation - removed status text since UI was updated
             colorChangeTimer.Start();
         }
         
         private void ColorChangeTimer_Tick(object? sender, EventArgs e)
         {
-            // Animation timer - kept for potential future use
-            // Status text was removed from UI
         }
         
         // Client-side win checking removed - server handles all game logic
@@ -629,6 +601,9 @@ namespace Connect4Client
             {
                 string finalStatus = playerWon ? "Won" : "Lost";
                 await gameService.UpdateGameStatus(currentPlayer.Id, currentGame.Id, finalStatus);
+                
+                // Final save of the complete game state
+                await SaveGameState();
             }
         }
         
@@ -641,7 +616,6 @@ namespace Connect4Client
             GameStatusText.Foreground = Brushes.Blue;
             CurrentPlayerText.Text = "Game Over";
             
-            // Update statistics
             if (currentPlayer != null)
             {
                 currentPlayer.GamesPlayed++;
@@ -649,36 +623,109 @@ namespace Connect4Client
                 await apiService.UpdatePlayerStatistics(currentPlayer);
             }
             
-            // Update game status in local database
             if (currentGame != null && currentPlayer != null)
             {
                 await gameService.UpdateGameStatus(currentPlayer.Id, currentGame.Id, "Draw");
+                
+                await SaveGameState();
             }
         }
         
         private async Task AnimateWinCelebration()
         {
-            // Create celebration animation with color changes
+            var winningPieces = FindWinningPieces();
+            
+            if (winningPieces.Count == 0) return;
+            
             for (int i = 0; i < 5; i++)
             {
-                // Flash the winning pieces
-                for (int row = 0; row < ROWS; row++)
+                foreach (var (row, col) in winningPieces)
                 {
-                    for (int col = 0; col < COLUMNS; col++)
-                    {
-                        if (boardState[row, col] == 1) // Player pieces
-                        {
-                            gamePieces[row, col].Fill = i % 2 == 0 ? Brushes.LimeGreen : Brushes.Red;
-                        }
-                        else if (boardState[row, col] == 2) // CPU pieces
-                        {
-                            gamePieces[row, col].Fill = i % 2 == 0 ? Brushes.LimeGreen : Brushes.Blue;
-                        }
-                    }
+                    gamePieces[row, col].Fill = i % 2 == 0 ? Brushes.LimeGreen : 
+                        (boardState[row, col] == 1 ? Brushes.Red : Brushes.Blue);
                 }
                 
                 await Task.Delay(300);
             }
+        }
+        
+        private List<(int row, int col)> FindWinningPieces()
+        {
+            var winningPieces = new List<(int row, int col)>();
+            
+            for (int row = 0; row < ROWS; row++)
+            {
+                for (int col = 0; col <= COLUMNS - 4; col++)
+                {
+                    if (boardState[row, col] != 0 &&
+                        boardState[row, col] == boardState[row, col + 1] &&
+                        boardState[row, col] == boardState[row, col + 2] &&
+                        boardState[row, col] == boardState[row, col + 3])
+                    {
+                        for (int i = 0; i < 4; i++)
+                        {
+                            winningPieces.Add((row, col + i));
+                        }
+                        return winningPieces;
+                    }
+                }
+            }
+            
+            for (int row = 0; row <= ROWS - 4; row++)
+            {
+                for (int col = 0; col < COLUMNS; col++)
+                {
+                    if (boardState[row, col] != 0 &&
+                        boardState[row, col] == boardState[row + 1, col] &&
+                        boardState[row, col] == boardState[row + 2, col] &&
+                        boardState[row, col] == boardState[row + 3, col])
+                    {
+                        for (int i = 0; i < 4; i++)
+                        {
+                            winningPieces.Add((row + i, col));
+                        }
+                        return winningPieces;
+                    }
+                }
+            }
+            
+            for (int row = 0; row <= ROWS - 4; row++)
+            {
+                for (int col = 0; col <= COLUMNS - 4; col++)
+                {
+                    if (boardState[row, col] != 0 &&
+                        boardState[row, col] == boardState[row + 1, col + 1] &&
+                        boardState[row, col] == boardState[row + 2, col + 2] &&
+                        boardState[row, col] == boardState[row + 3, col + 3])
+                    {
+                        for (int i = 0; i < 4; i++)
+                        {
+                            winningPieces.Add((row + i, col + i));
+                        }
+                        return winningPieces;
+                    }
+                }
+            }
+            
+            for (int row = 0; row <= ROWS - 4; row++)
+            {
+                for (int col = 3; col < COLUMNS; col++)
+                {
+                    if (boardState[row, col] != 0 &&
+                        boardState[row, col] == boardState[row + 1, col - 1] &&
+                        boardState[row, col] == boardState[row + 2, col - 2] &&
+                        boardState[row, col] == boardState[row + 3, col - 3])
+                    {
+                        for (int i = 0; i < 4; i++)
+                        {
+                            winningPieces.Add((row + i, col - i));
+                        }
+                        return winningPieces;
+                    }
+                }
+            }
+            
+            return winningPieces;
         }
         
         private void UpdateGameStatus()
@@ -713,6 +760,12 @@ namespace Connect4Client
         
         private async void NewGameButton_Click(object sender, RoutedEventArgs e)
         {
+            if (isLoadingGame)
+            {
+                MessageBox.Show("Please wait for the current operation to complete.", "Operation in Progress", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            
             await StartNewGame();
         }
         
@@ -727,7 +780,10 @@ namespace Connect4Client
                     return;
                 }
 
-                // Start new game on server
+                isLoadingGame = true;
+                LoadGameButton.IsEnabled = false;
+                NewGameButton.IsEnabled = false;
+
                 var response = await apiService.StartGame(currentPlayer.PlayerId);
                 
                 if (!response.Success)
@@ -736,50 +792,39 @@ namespace Connect4Client
                     return;
                 }
                 
-                if (response.Game == null) return;
+                if (response.Game == null)
+                {
+                    return;
+                }
                 
-                // Set current game
                 currentGame = response.Game;
                 
-                // Reset game state
                 gameActive = true;
                 isPlayerTurn = true;
-                isProcessingMove = false; // Reset processing flag for new game
+                isProcessingMove = false;
                 
-                // Update board state from server (convert jagged array to 2D array)
+                turnHistory.Clear();
+                
                 boardState = GameDto.To2DArray(response.Game.Board);
                 
-                // Update visual board to match server state
                 await UpdateVisualBoard();
                 
-                // Reset timers
                 animationTimer.Stop();
                 cpuMoveTimer.Stop();
                 colorChangeTimer.Stop();
                 
                 UpdateGameStatus();
                 UpdatePlayerInfo();
-
-    
-
-                // Save initial game state
-                await SaveGameState();
-                
-                // Test save by creating a test game state
-                System.Diagnostics.Debug.WriteLine("Testing game save functionality...");
-                try
-                {
-                    await gameService.SaveGameState(currentPlayer.Id, boardState, isPlayerTurn, currentGame.Id);
-                    System.Diagnostics.Debug.WriteLine("Test save completed successfully");
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Test save failed: {ex.Message}");
-                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error starting new game: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                isLoadingGame = false;
+                LoadGameButton.IsEnabled = true;
+                NewGameButton.IsEnabled = true;
             }
         }
         
@@ -792,27 +837,32 @@ namespace Connect4Client
         {
             if (currentGame == null || currentPlayer == null) 
             {
-                System.Diagnostics.Debug.WriteLine("SaveGameState: currentGame or currentPlayer is null");
+                return;
+            }
+            
+            if (currentGame.Status != "Won" && currentGame.Status != "Lost")
+            {
                 return;
             }
             
             try
             {
-                System.Diagnostics.Debug.WriteLine($"Saving game state - PlayerId: {currentPlayer.Id}, GameId: {currentGame.Id}, IsPlayerTurn: {isPlayerTurn}");
-                await gameService.SaveGameState(currentPlayer.Id, boardState, isPlayerTurn, currentGame.Id);
-                System.Diagnostics.Debug.WriteLine("Game state saved successfully");
+                await gameService.SaveGameState(currentPlayer.Id, boardState, isPlayerTurn, currentGame.Id, currentGame.Status, turnHistory);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error saving game state: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                MessageBox.Show($"Error saving game state: {ex.Message}", "Save Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         
-
-        
         private async void LoadGameButton_Click(object sender, RoutedEventArgs e)
         {
+            if (isLoadingGame)
+            {
+                MessageBox.Show("Please wait for the current operation to complete.", "Operation in Progress", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            
             try
             {
                 if (currentPlayer == null)
@@ -821,8 +871,12 @@ namespace Connect4Client
                     return;
                 }
                 
+                isLoadingGame = true;
+                LoadGameButton.IsEnabled = false;
+                NewGameButton.IsEnabled = false;
+                
                 var restoreWindow = new GameRestoreWindow(currentPlayer.Id);
-                restoreWindow.Owner = this; // Set the owner to prevent crashes
+                restoreWindow.Owner = this;
                 restoreWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
                 
                 if (restoreWindow.ShowDialog() == true && restoreWindow.SelectedGame != null)
@@ -833,6 +887,12 @@ namespace Connect4Client
             catch (Exception ex)
             {
                 MessageBox.Show($"Error loading games: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                isLoadingGame = false;
+                LoadGameButton.IsEnabled = true;
+                NewGameButton.IsEnabled = true;
             }
         }
         
@@ -846,22 +906,38 @@ namespace Connect4Client
                     return;
                 }
 
-                // Restore game state
-                boardState = savedGame.BoardStateJson;
+                List<MoveRecord>? turnHistory = null;
+                if (!string.IsNullOrEmpty(savedGame.MoveHistoryJson))
+                {
+                    try
+                    {
+                        turnHistory = System.Text.Json.JsonSerializer.Deserialize<List<MoveRecord>>(savedGame.MoveHistoryJson);
+                    }
+                    catch
+                    {
+                    }
+                }
+                
                 isPlayerTurn = savedGame.IsPlayerTurn;
                 gameActive = true;
                 
-                // Create a mock current game for UI purposes
                 currentGame = new GameDto
                 {
                     Id = savedGame.GameId,
                     Status = savedGame.GameStatus,
-                    Board = GameDto.From2DArray(savedGame.BoardStateJson), // Convert 2D array to jagged array
+                    Board = GameDto.From2DArray(boardState),
                     CurrentPlayer = savedGame.IsPlayerTurn ? "Player" : "CPU"
                 };
                 
-                // Update visual board to match restored state
-                await UpdateVisualBoard();
+                if (turnHistory != null && turnHistory.Count > 0)
+                {
+                    await ReplayTurnsFromHistory(turnHistory);
+                }
+                else
+                {
+                    boardState = ConvertStringToBoardState(savedGame.BoardStateJson);
+                    await UpdateVisualBoard();
+                }
                 
                 UpdateGameStatus();
                 MessageBox.Show("Game restored successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -870,13 +946,58 @@ namespace Connect4Client
             {
                 MessageBox.Show($"Error restoring game: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 
-                // Reset game state on error
                 gameActive = false;
                 isPlayerTurn = true;
                 UpdateGameStatus();
             }
         }
+
+        private static int[,] ConvertStringToBoardState(string boardStateString)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(boardStateString)) 
+                    return new int[6, 7];
+                
+                var rows = boardStateString.Split(';');
+                if (rows.Length == 0) 
+                    return new int[6, 7];
+                
+                int rowCount = Math.Min(rows.Length, 6);
+                int colCount = Math.Min(rows[0].Split(',').Length, 7);
+                var result = new int[6, 7];
+                
+                for (int i = 0; i < rowCount; i++)
+                {
+                    var cols = rows[i].Split(',');
+                    for (int j = 0; j < colCount && j < cols.Length; j++)
+                    {
+                        if (int.TryParse(cols[j], out int value))
+                        {
+                            result[i, j] = value;
+                        }
+                    }
+                }
+                
+                return result;
+            }
+            catch
+            {
+                return new int[6, 7];
+            }
+        }
         
-        // AnimateGameRestoration removed - using UpdateVisualBoard instead
+        private int CountPieces(int[,] board)
+        {
+            int count = 0;
+            for (int row = 0; row < ROWS; row++)
+            {
+                for (int col = 0; col < COLUMNS; col++)
+                {
+                    if (board[row, col] != 0) count++;
+                }
+            }
+            return count;
+        }
     }
 }

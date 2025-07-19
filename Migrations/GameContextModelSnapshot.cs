@@ -44,6 +44,10 @@ namespace Connect4Client.Migrations
                     b.Property<bool>("IsPlayerTurn")
                         .HasColumnType("bit");
 
+                    b.Property<string>("MoveHistoryJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("PlayerId")
                         .HasColumnType("int");
 
@@ -51,6 +55,9 @@ namespace Connect4Client.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PlayerId", "GameId")
+                        .IsUnique();
 
                     b.ToTable("SavedGames");
                 });
