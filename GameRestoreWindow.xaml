@@ -179,13 +179,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="🎯 Your Turn" Binding="{Binding IsPlayerTurn}" Width="120">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="#6B7280"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+
                         
                         <DataGridTextColumn Header="⏱️ Moves" Binding="{Binding MovesCount}" Width="100">
                             <DataGridTextColumn.ElementStyle>

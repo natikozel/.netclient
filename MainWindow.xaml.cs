@@ -306,7 +306,7 @@ namespace Connect4Client
         {
             var previousState = new int[ROWS, COLUMNS];
             for (int row = 0; row < ROWS; row++)
-            {
+        {
                 for (int col = 0; col < COLUMNS; col++)
                 {
                     var piece = gamePieces[row, col];
@@ -321,7 +321,7 @@ namespace Connect4Client
             for (int row = 0; row < ROWS; row++)
             {
                 for (int col = 0; col < COLUMNS; col++)
-                {
+            {
                     var piece = gamePieces[row, col];
                     var newValue = boardState[row, col];
                     var oldValue = previousState[row, col];
@@ -333,7 +333,7 @@ namespace Connect4Client
                             newPlayerPieces.Add((row, col));
                         }
                         else if (newValue == 2)
-                        {
+                {
                             newCpuPieces.Add((row, col));
                         }
                     }
@@ -343,7 +343,7 @@ namespace Connect4Client
                         case 0:
                             piece.Fill = Brushes.Transparent;
                             piece.Visibility = Visibility.Hidden;
-                            break;
+                    break;
                         case 1:
                             if (oldValue == 0)
                             {
@@ -404,12 +404,12 @@ namespace Connect4Client
             }
             
             for (int i = 0; i < turnHistory.Count; i++)
-            {
+        {
                 var move = turnHistory[i];
                 
                 int targetRow = -1;
-                for (int row = ROWS - 1; row >= 0; row--)
-                {
+            for (int row = ROWS - 1; row >= 0; row--)
+            {
                     if (boardState[row, move.Column] == 0)
                     {
                         targetRow = row;
@@ -579,7 +579,6 @@ namespace Connect4Client
                 GameStatusText.Foreground = Brushes.Red;
             }
             
-            CurrentPlayerText.Text = "Game Over";
             
             // Update statistics
             if (currentPlayer != null)
@@ -614,7 +613,6 @@ namespace Connect4Client
             
             GameStatusText.Text = "It's a Draw!";
             GameStatusText.Foreground = Brushes.Blue;
-            CurrentPlayerText.Text = "Game Over";
             
             if (currentPlayer != null)
             {
@@ -653,7 +651,7 @@ namespace Connect4Client
         {
             var winningPieces = new List<(int row, int col)>();
             
-            for (int row = 0; row < ROWS; row++)
+                for (int row = 0; row < ROWS; row++)
             {
                 for (int col = 0; col <= COLUMNS - 4; col++)
                 {
@@ -672,9 +670,9 @@ namespace Connect4Client
             }
             
             for (int row = 0; row <= ROWS - 4; row++)
-            {
-                for (int col = 0; col < COLUMNS; col++)
                 {
+                    for (int col = 0; col < COLUMNS; col++)
+                    {
                     if (boardState[row, col] != 0 &&
                         boardState[row, col] == boardState[row + 1, col] &&
                         boardState[row, col] == boardState[row + 2, col] &&
@@ -703,10 +701,10 @@ namespace Connect4Client
                             winningPieces.Add((row + i, col + i));
                         }
                         return winningPieces;
+                        }
                     }
                 }
-            }
-            
+                
             for (int row = 0; row <= ROWS - 4; row++)
             {
                 for (int col = 3; col < COLUMNS; col++)
@@ -719,7 +717,7 @@ namespace Connect4Client
                         for (int i = 0; i < 4; i++)
                         {
                             winningPieces.Add((row + i, col - i));
-                        }
+            }
                         return winningPieces;
                     }
                 }
@@ -733,12 +731,10 @@ namespace Connect4Client
             if (!gameActive)
             {
                 GameStatusText.Text = "Not Started";
-                CurrentPlayerText.Text = "Press New Game";
                 return;
             }
             
             GameStatusText.Text = "In Progress";
-            CurrentPlayerText.Text = isPlayerTurn ? "Your Turn" : "CPU's Turn";
             GameStatusText.Foreground = isPlayerTurn ? Brushes.Green : Brushes.Blue;
         }
         
@@ -864,24 +860,24 @@ namespace Connect4Client
             }
             
             try
+        {
+            if (currentPlayer == null)
             {
-                if (currentPlayer == null)
-                {
-                    MessageBox.Show("Please connect to server first!", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                MessageBox.Show("Please connect to server first!", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
                 
                 isLoadingGame = true;
                 LoadGameButton.IsEnabled = false;
                 NewGameButton.IsEnabled = false;
-                
-                var restoreWindow = new GameRestoreWindow(currentPlayer.Id);
+            
+            var restoreWindow = new GameRestoreWindow(currentPlayer.Id);
                 restoreWindow.Owner = this;
                 restoreWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
                 
-                if (restoreWindow.ShowDialog() == true && restoreWindow.SelectedGame != null)
-                {
-                    await RestoreGame(restoreWindow.SelectedGame);
+            if (restoreWindow.ShowDialog() == true && restoreWindow.SelectedGame != null)
+            {
+                await RestoreGame(restoreWindow.SelectedGame);
                 }
             }
             catch (Exception ex)
@@ -968,17 +964,17 @@ namespace Connect4Client
                 var result = new int[6, 7];
                 
                 for (int i = 0; i < rowCount; i++)
-                {
+            {
                     var cols = rows[i].Split(',');
                     for (int j = 0; j < colCount && j < cols.Length; j++)
-                    {
+                {
                         if (int.TryParse(cols[j], out int value))
-                        {
+                    {
                             result[i, j] = value;
-                        }
                     }
                 }
-                
+            }
+            
                 return result;
             }
             catch
@@ -988,7 +984,7 @@ namespace Connect4Client
         }
         
         private int CountPieces(int[,] board)
-        {
+            {
             int count = 0;
             for (int row = 0; row < ROWS; row++)
             {
@@ -998,6 +994,6 @@ namespace Connect4Client
                 }
             }
             return count;
+            }
         }
     }
-}

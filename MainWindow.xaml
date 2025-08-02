@@ -77,7 +77,6 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         
                         <!-- Game Status -->
@@ -87,11 +86,10 @@
                                 <Ellipse Width="12" Height="12" Fill="#10B981" Margin="0,0,10,0" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="GameStatusText" Text="Ready to Play" FontSize="16" Foreground="{StaticResource TextSecondaryBrush}"/>
                             </StackPanel>
-                            <TextBlock x:Name="CurrentPlayerText" Text="Waiting for connection..." FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,5,0,0"/>
                         </StackPanel>
                         
                         <!-- Primary Game Controls -->
-                        <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0">
+                        <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20,0">
                             <Button 
                                 x:Name="NewGameButton" 
                                 Content="🎯 New Game" 
@@ -114,14 +112,7 @@
                                 VerticalAlignment="Center"/>
                         </StackPanel>
                         
-                        <!-- Current Turn Info -->
-                        <StackPanel Grid.Column="3" HorizontalAlignment="Right">
-                            <TextBlock Text="👥 Current Turn" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Ellipse Width="24" Height="24" Fill="{StaticResource Player1Brush}" Margin="0,0,10,0"/>
-                                <TextBlock Text="Your Turn" FontSize="16" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </StackPanel>
+
                     </Grid>
                 </Border>
                 
